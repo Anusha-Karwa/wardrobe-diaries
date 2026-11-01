@@ -24,4 +24,18 @@ npm run dev                  # http://localhost:3000
 
 If the project is linked to Vercel, `vercel link` then `vercel env pull .env.local` fills in the storage values for you.
 
+Optional: `GEMINI_IMAGE_MODEL` (default `gemini-3.1-flash-image`) and `GEMINI_SEGMENTATION` (default `off`).
+
 Check wiring at `/api/health` (after logging in).
+
+## How the extraction pipeline cuts items out
+
+| Photo | Cutout | Badge |
+|---|---|---|
+| Single item / flat lay / hanger | Background removed **in the browser** from your real photo (`@imgly/background-removal`) | Real cutout |
+| Worn (mirror selfie) | Gemini's image model re-draws each item as a product shot on a key colour, which sharp removes | AI product shot |
+| Tiny worn items (e.g. a necklace in a full-body shot) | Rectangle crop | Crop |
+
+Gemini segmentation masks (the spec's original Stage 3) are implemented in `lib/extraction/segment.ts` but **off by default**: on current Gemini 3 Flash models they took ~50 s per item and came back empty, and `gemini-2.5-flash` is no longer offered to new API keys. Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo.
+
+`seed-images/` holds three AI-generated test photos (a mirror selfie and two flat lays) used to test the pipeline.
