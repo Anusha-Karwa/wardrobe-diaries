@@ -19,7 +19,7 @@ npm run dev                  # http://localhost:3000
 | `GEMINI_MODEL` | Optional. Blank = `gemini-flash-latest` alias. Pin a version from the Gemini models page if you prefer. |
 | `DATABASE_URL` | Neon pooled connection string (Vercel → Storage → Neon, or neon.tech → Connect → "Pooled connection") |
 | `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Blob store → `.env.local` tab |
-| `APP_PASSCODE` | Anything you like, e.g. `closet2026` |
+| `REQUIRE_PASSCODE` / `APP_PASSCODE` | Optional lock. The app is open unless `REQUIRE_PASSCODE=true`; then it asks for `APP_PASSCODE`. |
 | `CRON_SECRET` | `openssl rand -hex 32` |
 
 If the project is linked to Vercel, `vercel link` then `vercel env pull .env.local` fills in the storage values for you.
