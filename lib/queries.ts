@@ -198,3 +198,43 @@ export async function deleteOutfit(id: string) {
   await deleteBlobs([rows[0].board_url as string | null]);
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Trends (read side; the trend engine writes them in Phase 6) & wishlist
+// ---------------------------------------------------------------------------
+import type { BuyCard, Trend, WishlistItem } from "./types";
+
+/** Trends from the most recent research run (empty until the trend engine has run). */
+export async function getLatestTrends(limit = 60) {
+  return (await sql`
+    select * from trends
+    where batch_id = (select batch_id from trends order by created_at desc limit 1)
+    order by heat desc nulls last, created_at desc
+    limit ${limit}`) as Trend[];
+}
+
+export async function listWishlist() {
+  return (await sql`select * from wishlist order by bought asc, created_at desc`) as WishlistItem[];
+}
+
+/** Save a buy card. Re-saving the same (unbought) title returns the existing row instead of a duplicate. */
+export async function addToWishlist(card: BuyCard) {
+  const existing = await sql`select * from wishlist where lower(title) = lower(${card.title}) and not bought limit 1`;
+  if (existing.length) return { item: existing[0] as WishlistItem, duplicate: true };
+  const rows = await sql`
+    insert into wishlist (title, category, attributes, why, pairs_with_item_ids, trend_id, search_query, price_band)
+    values (${card.title}, ${card.category}, ${JSON.stringify(card.attributes)}::jsonb, ${card.why},
+            ${card.pairs_with_item_ids}::uuid[], ${card.trend?.id ?? null}, ${card.search_query}, ${card.price_band})
+    returning *`;
+  return { item: rows[0] as WishlistItem, duplicate: false };
+}
+
+export async function setWishlistBought(id: string, bought: boolean) {
+  const rows = await sql`update wishlist set bought = ${bought} where id = ${id} returning *`;
+  return (rows[0] as WishlistItem | undefined) ?? null;
+}
+
+export async function deleteWishlistItem(id: string) {
+  const rows = await sql`delete from wishlist where id = ${id} returning id`;
+  return rows.length > 0;
+}

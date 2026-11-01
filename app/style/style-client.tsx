@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { OutfitCard } from "@/components/outfit-board";
-import { GapCard } from "@/components/gap-card";
+import { BuyCard } from "@/components/buy-card";
 import { ItemImage } from "@/components/item-image";
 import { CATEGORIES, OCCASIONS } from "@/lib/taxonomy";
 import type { OutfitResult } from "@/lib/outfits";
@@ -59,7 +59,7 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
       setResult(data);
-      if (!data.outfits.length && !data.gaps.length) toast("No outfits this time. Try another occasion or item.");
+      if (!data.outfits.length && !data.buys.length) toast("No outfits this time. Try another occasion or item.");
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -222,12 +222,15 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
               ))}
             </div>
           )}
-          {result.gaps.length > 0 && (
+          {result.buys.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xl font-semibold">What would complete these looks</h2>
+              <div>
+                <h2 className="text-xl font-semibold">To buy</h2>
+                <p className="text-sm text-muted-foreground">Pieces that would complete these looks, with shop searches.</p>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {result.gaps.map((g, i) => (
-                  <GapCard key={i} gap={g} wardrobe={wardrobe} />
+                {result.buys.map((b, i) => (
+                  <BuyCard key={i} card={b} wardrobe={wardrobe} />
                 ))}
               </div>
             </section>

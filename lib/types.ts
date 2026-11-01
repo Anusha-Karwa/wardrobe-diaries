@@ -79,3 +79,62 @@ export interface Outfit {
   is_favorite: boolean;
   created_at: string;
 }
+
+export interface ShopLinks {
+  myntra: string;
+  ajio: string;
+  nykaa: string;
+  amazon: string;
+}
+
+/** A trend summary attached to a buy card when the item matches a current trend. */
+export interface TrendBadge {
+  id: string;
+  title: string;
+  heat: number;
+  sources: { title: string; url: string }[];
+}
+
+/** A "To buy" suggestion (from an outfit gap, a trend, or the stylist agent). */
+export interface BuyCard {
+  title: string;
+  category: string;
+  attributes: Record<string, string>;
+  why: string;
+  pairs_with_item_ids: string[];
+  search_query: string;
+  links: ShopLinks;
+  price_band: string;
+  trend: TrendBadge | null;
+}
+
+export interface WishlistItem {
+  id: string;
+  title: string;
+  category: string | null;
+  attributes: Record<string, string> | null;
+  why: string | null;
+  pairs_with_item_ids: string[];
+  trend_id: string | null;
+  search_query: string | null;
+  price_band: string | null;
+  bought: boolean;
+  created_at: string;
+}
+
+export interface Trend {
+  id: string;
+  batch_id: string;
+  period: string;
+  title: string;
+  category: string | null;
+  match_attributes: Record<string, string[]> | null;
+  summary: string | null;
+  why_now: string | null;
+  how_to_style: string | null;
+  heat: number | null;
+  price_band: string | null;
+  search_query: string | null;
+  sources: { title: string; url: string }[] | null;
+  created_at: string;
+}

@@ -2,7 +2,8 @@ import { Type, type Schema } from "@google/genai";
 import { z } from "zod";
 import { generateJson } from "./gemini";
 import { OUTFIT_SYSTEM_PROMPT, profileBlock } from "./prompts";
-import { getProfile, incrementTimesSuggested, listItems } from "./queries";
+import { getLatestTrends, getProfile, incrementTimesSuggested, listItems } from "./queries";
+import { toBuyCard } from "./shopping";
 import {
   CATEGORIES,
   COLORS,
@@ -17,7 +18,7 @@ import {
   normaliseArray,
   normaliseValue,
 } from "./taxonomy";
-import type { Item } from "./types";
+import type { BuyCard, Item } from "./types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,6 +58,8 @@ export interface Gap {
 export interface OutfitResult {
   outfits: GeneratedOutfit[];
   gaps: Gap[];
+  /** Gaps turned into "To buy" cards (shop links, trend badge, price band). */
+  buys: BuyCard[];
   note: string | null;
 }
 
@@ -229,7 +232,7 @@ function userMessage(req: OutfitRequest, anchorShort: string | null, wardrobe: u
 export async function generateOutfits(req: OutfitRequest): Promise<OutfitResult> {
   const count = Math.min(6, Math.max(1, req.count ?? (req.mode === "anchor" ? 5 : 4)));
   const [items, profile] = await Promise.all([listItems(), getProfile()]);
-  if (!items.length) return { outfits: [], gaps: [], note: "Your closet is empty. Upload a few photos first." };
+  if (!items.length) return { outfits: [], gaps: [], buys: [], note: "Your closet is empty. Upload a few photos first." };
 
   const { rows, idMap } = compactWardrobe(items);
   const realToShort = new Map([...idMap].map(([s, r]) => [r, s]));
@@ -294,5 +297,7 @@ export async function generateOutfits(req: OutfitRequest): Promise<OutfitResult>
   });
 
   await incrementTimesSuggested(outfits.flatMap((o) => o.item_ids));
-  return { outfits, gaps, note: raw.note?.trim() || null };
+  const trends = await getLatestTrends().catch(() => []);
+  const buys = gaps.map((g) => toBuyCard(g, { genderPref: profile.gender_pref, budgetBand: profile.budget_band, trends }));
+  return { outfits, gaps, buys, note: raw.note?.trim() || null };
 }

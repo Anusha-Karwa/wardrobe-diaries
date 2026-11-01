@@ -1,5 +1,9 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { listItems, listWishlist } from "@/lib/queries";
+import { WishlistClient } from "./wishlist-client";
 
-export default function Page() {
-  return <ComingSoon title="Wishlist" phase={5} blurb="Things your stylist thinks you should buy." />;
+export const dynamic = "force-dynamic";
+
+export default async function WishlistPage() {
+  const [wishlist, wardrobe] = await Promise.all([listWishlist(), listItems()]);
+  return <WishlistClient initial={wishlist} wardrobe={wardrobe} />;
 }
