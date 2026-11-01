@@ -137,3 +137,64 @@ export async function deleteItem(id: string) {
   }
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Outfits
+// ---------------------------------------------------------------------------
+import type { Outfit } from "./types";
+
+export async function getItemsByIds(ids: string[]) {
+  if (!ids.length) return [] as Item[];
+  return (await sql`select * from items where id = any(${ids}::uuid[])`) as Item[];
+}
+
+export async function incrementTimesSuggested(ids: string[]) {
+  if (!ids.length) return;
+  // Count repeats (an item in 3 outfits gets +3).
+  const counts = new Map<string, number>();
+  for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const uniq = [...counts.keys()];
+  const incs = uniq.map((id) => counts.get(id)!);
+  await sql`
+    update items set times_suggested = times_suggested + t.n
+    from unnest(${uniq}::uuid[], ${incs}::int[]) as t(id, n)
+    where items.id = t.id`;
+}
+
+export async function insertOutfit(o: {
+  name: string;
+  style_tag: string;
+  occasion: string | null;
+  reasoning: string;
+  missing_piece: string | null;
+  color_story: string;
+  item_ids: string[];
+  source: string;
+}) {
+  const rows = await sql`
+    insert into outfits (name, style_tag, occasion, reasoning, missing_piece, color_story, item_ids, source)
+    values (${o.name}, ${o.style_tag}, ${o.occasion}, ${o.reasoning}, ${o.missing_piece}, ${o.color_story}, ${o.item_ids}::uuid[], ${o.source})
+    returning *`;
+  return rows[0] as Outfit;
+}
+
+export async function getOutfit(id: string) {
+  const rows = await sql`select * from outfits where id = ${id}`;
+  return (rows[0] as Outfit | undefined) ?? null;
+}
+
+/** Lookbook: outfits the user saved (daily-drop outfits only appear once saved/favourited). */
+export async function listLookbook() {
+  return (await sql`select * from outfits where source <> 'daily' or is_favorite order by created_at desc`) as Outfit[];
+}
+
+export async function setOutfitBoard(id: string, boardUrl: string) {
+  await sql`update outfits set board_url = ${boardUrl} where id = ${id}`;
+}
+
+export async function deleteOutfit(id: string) {
+  const rows = await sql`delete from outfits where id = ${id} returning board_url`;
+  if (!rows.length) return false;
+  await deleteBlobs([rows[0].board_url as string | null]);
+  return true;
+}

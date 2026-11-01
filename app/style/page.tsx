@@ -1,5 +1,14 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { Suspense } from "react";
+import { listItems } from "@/lib/queries";
+import { StyleClient } from "./style-client";
 
-export default function Page() {
-  return <ComingSoon title="Style me" phase={4} blurb="Pick an item or an occasion and get outfit boards built from your wardrobe." />;
+export const dynamic = "force-dynamic";
+
+export default async function StylePage() {
+  const items = await listItems();
+  return (
+    <Suspense>
+      <StyleClient wardrobe={items} />
+    </Suspense>
+  );
 }

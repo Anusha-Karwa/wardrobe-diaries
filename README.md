@@ -39,3 +39,5 @@ Check wiring at `/api/health` (after logging in).
 Gemini segmentation masks (the spec's original Stage 3) are implemented in `lib/extraction/segment.ts` but **off by default**: on current Gemini 3 Flash models they took ~50 s per item and came back empty, and `gemini-2.5-flash` is no longer offered to new API keys. Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo.
 
 `seed-images/` holds three AI-generated test photos (a mirror selfie and two flat lays) used to test the pipeline.
+
+Fonts in `assets/fonts` (Playfair Display, Inter) are from Google Fonts under the SIL Open Font License; they are bundled because Vercel has no system fonts for the board renderer.

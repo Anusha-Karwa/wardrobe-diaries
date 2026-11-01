@@ -64,3 +64,18 @@ export interface Upload {
 export interface UploadedItem extends Item {
   needs_client_cutout: boolean;
 }
+
+export interface Outfit {
+  id: string;
+  name: string | null;
+  style_tag: string | null;
+  occasion: string | null;
+  reasoning: string | null;
+  missing_piece: string | null;
+  color_story: string | null;
+  item_ids: string[];
+  board_url: string | null;
+  source: string | null;
+  is_favorite: boolean;
+  created_at: string;
+}
