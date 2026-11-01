@@ -7,7 +7,11 @@ import { getProfile } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const profile = await getProfile().catch(() => null);
+  let dbError: string | null = null;
+  const profile = await getProfile().catch((err: Error) => {
+    dbError = describeDbError(err);
+    return null;
+  });
   const hour = new Date().toLocaleString("en-IN", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" });
   const h = Number(hour);
   const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
@@ -27,6 +31,7 @@ export default async function HomePage() {
           <p className="text-sm">
             Couldn&apos;t reach the database. Check <code>DATABASE_URL</code> and run <code>npm run db:setup</code>.
           </p>
+          {dbError && <p className="text-sm text-muted-foreground">Reason: {dbError}</p>}
         </Card>
       )}
 
@@ -49,4 +54,16 @@ export default async function HomePage() {
       </div>
     </div>
   );
+}
+
+/** Turn a database error into a hint that's safe to show (never prints the connection string). */
+function describeDbError(err: Error) {
+  const msg = err?.message ?? String(err);
+  if (!process.env.DATABASE_URL) return "DATABASE_URL is not set on this server (on Vercel: Settings → Environment Variables, then redeploy).";
+  if (/relation "?profile"? does not exist/i.test(msg))
+    return "the database has no Closet tables. DATABASE_URL probably points at the wrong database (it should end in /closet?…), or db:setup hasn't been run on it.";
+  if (/password authentication failed/i.test(msg)) return "wrong database password in DATABASE_URL.";
+  if (/database "?\w+"? does not exist/i.test(msg)) return "the database named in DATABASE_URL doesn't exist.";
+  if (/fetch failed|ENOTFOUND|getaddrinfo/i.test(msg)) return "the database host couldn't be reached (check the host in DATABASE_URL).";
+  return msg.replace(/postgres(ql)?:\/\/\S+/gi, "[url]").slice(0, 200);
 }
