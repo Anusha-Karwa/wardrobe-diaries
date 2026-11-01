@@ -41,3 +41,14 @@ Gemini segmentation masks (the spec's original Stage 3) are implemented in `lib/
 `seed-images/` holds three AI-generated test photos (a mirror selfie and two flat lays) used to test the pipeline.
 
 Fonts in `assets/fonts` (Playfair Display, Inter) are from Google Fonts under the SIL Open Font License; they are bundled because Vercel has no system fonts for the board renderer.
+
+## Trend engine
+
+Each refresh researches 7 category groups (tops, bottoms, dresses & co-ords, ethnic & festive, footwear, jewellery, bags & accessories):
+
+1. **Research:** Gemini with the Google Search tool, plain text. Grounding sources are resolved from Google's redirect links to the real article URLs.
+2. **Structure:** a separate Gemini call (no tools) turns the text into JSON using the wardrobe taxonomy. Search grounding and structured output are never combined in one request.
+3. **Match:** code decides *owned* (the item must match every defining attribute, including at least one distinctive one such as neckline, fit, fabric or pattern; type, length or mood alone never count). One batched Gemini call then picks what each trend pairs with and writes a note.
+4. **Save** under one `batch_id`. The page shows the newest batch per group, so a daily cron that refreshes 2–3 groups doesn't hide the others.
+
+**Pinterest has no open public trends API**, so the app reads Pinterest, magazine (Vogue India, Elle India, Harper's Bazaar India) and retailer (Myntra/Ajio/Nykaa Fashion) trend coverage through Google Search grounding, and shows the sources on every trend card so you can check them.

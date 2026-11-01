@@ -29,7 +29,7 @@ test("every link is https on the right marketplace domain", () => {
 });
 
 const halter: Trend = {
-  id: "t1", batch_id: "b", period: "daily", title: "Halter-neck tops", category: "topwear",
+  id: "t1", batch_id: "b", period: "daily", group_key: "tops", title: "Halter-neck tops", category: "topwear",
   match_attributes: { neckline: ["halter"] }, summary: null, why_now: null, how_to_style: null,
   heat: 5, price_band: "₹800–2,500", search_query: null, sources: [{ title: "Vogue India", url: "https://vogue.in/x" }], created_at: "",
 };

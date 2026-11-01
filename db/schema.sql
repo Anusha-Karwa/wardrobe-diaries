@@ -74,6 +74,9 @@ create table if not exists trends (
   created_at timestamptz default now()
 );
 
+-- Which category group a trend came from (so a daily refresh of 2–3 groups doesn't hide the others).
+alter table trends add column if not exists group_key text;
+
 create table if not exists trend_matches (
   trend_id uuid references trends(id) on delete cascade,
   status text,                     -- owned | missing
@@ -119,6 +122,7 @@ create table if not exists chat_messages (
 create index if not exists items_category_idx on items (category);
 create index if not exists trends_batch_idx on trends (batch_id);
 create index if not exists trends_created_idx on trends (created_at desc);
+create index if not exists trends_group_idx on trends (group_key, created_at desc);
 create index if not exists chat_thread_idx on chat_messages (thread_id, created_at);
 
 insert into profile (id) values (1) on conflict (id) do nothing;

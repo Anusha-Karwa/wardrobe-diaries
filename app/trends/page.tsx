@@ -1,5 +1,10 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { listItems } from "@/lib/queries";
+import { getCurrentTrends, getPastTrends } from "@/lib/trends";
+import { TrendsClient } from "./trends-client";
 
-export default function Page() {
-  return <ComingSoon title="What's In" phase={6} blurb="Daily fashion trends, matched against your wardrobe." />;
+export const dynamic = "force-dynamic";
+
+export default async function TrendsPage() {
+  const [current, past, wardrobe] = await Promise.all([getCurrentTrends(), getPastTrends(), listItems()]);
+  return <TrendsClient current={current} past={past} wardrobe={wardrobe} />;
 }

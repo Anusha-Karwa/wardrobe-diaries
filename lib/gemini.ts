@@ -30,6 +30,8 @@ export interface CallOptions {
   timeoutMs?: number;
   /** Try to switch thinking off (better for detection/segmentation). Falls back silently if unsupported. */
   thinkingOff?: boolean;
+  /** Lower thinking effort for speed (Gemini 3 thinkingLevel). Falls back silently if unsupported. */
+  thinkingLevel?: "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -65,15 +67,17 @@ export async function generate(params: Params, opts: CallOptions): Promise<Gener
   let p = params;
   if (opts.thinkingOff) {
     p = { ...params, config: { ...params.config, thinkingConfig: { thinkingBudget: 0 } } };
+  } else if (opts.thinkingLevel) {
+    p = { ...params, config: { ...params.config, thinkingConfig: { thinkingLevel: opts.thinkingLevel as never } } };
   }
 
   let res: GenerateContentResponse;
   try {
     res = await once(p, opts);
   } catch (err) {
-    if (opts.thinkingOff && isThinkingConfigError(err)) {
-      // This model doesn't accept thinkingBudget: 0 — use its default instead.
-      res = await generate(params, { ...opts, thinkingOff: false });
+    if ((opts.thinkingOff || opts.thinkingLevel) && isThinkingConfigError(err)) {
+      // This model doesn't accept that thinking setting — use its default instead.
+      res = await generate(params, { ...opts, thinkingOff: false, thinkingLevel: undefined });
       return res;
     }
     if (!isRetryable(err)) throw err;

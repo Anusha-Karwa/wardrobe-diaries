@@ -76,7 +76,8 @@ export const TREND_RESEARCH_PROMPT = `You are a fashion trend analyst for {{gend
 Research what is trending RIGHT NOW (the last 2–4 weeks) in {{category_group}}.
 Look at: Pinterest trend reports and Pinterest Predicts, Vogue India, Elle India, Harper's Bazaar India, Myntra/Ajio/Nykaa Fashion trend and "new in" pages, Instagram and celebrity street style, and global runway coverage that is reaching India.
 Consider the season and upcoming occasions in India (festivals, wedding season, monsoon, summer).
-List 4–6 specific, shoppable trends (e.g. "halter-neck tops", "sheer lace tops", "chunky gold hoops", "barrel-leg jeans"). For each: what it is, why it's trending now, how to style it, and roughly what it costs in India.`;
+List 4–6 specific, shoppable trends (e.g. "halter-neck tops", "sheer lace tops", "chunky gold hoops", "barrel-leg jeans"). For each: what it is, why it's trending now, how to style it, and roughly what it costs in India.
+Use Google Search to check current coverage before answering. Do not rely on memory alone.`;
 
 /** Profile block appended to every AI prompt so suggestions are personalised. */
 export function profileBlock(p: {

@@ -126,6 +126,7 @@ export interface Trend {
   id: string;
   batch_id: string;
   period: string;
+  group_key: string | null;
   title: string;
   category: string | null;
   match_attributes: Record<string, string[]> | null;

@@ -204,12 +204,14 @@ export async function deleteOutfit(id: string) {
 // ---------------------------------------------------------------------------
 import type { BuyCard, Trend, WishlistItem } from "./types";
 
-/** Trends from the most recent research run (empty until the trend engine has run). */
-export async function getLatestTrends(limit = 60) {
+/** Current trends: the newest batch for each category group (empty until the trend engine has run). */
+export async function getLatestTrends(limit = 80) {
   return (await sql`
-    select * from trends
-    where batch_id = (select batch_id from trends order by created_at desc limit 1)
-    order by heat desc nulls last, created_at desc
+    with latest as (
+      select distinct on (group_key) group_key, batch_id from trends where group_key is not null order by group_key, created_at desc
+    )
+    select t.* from trends t join latest l on l.group_key = t.group_key and l.batch_id = t.batch_id
+    order by t.heat desc nulls last, t.created_at desc
     limit ${limit}`) as Trend[];
 }
 
