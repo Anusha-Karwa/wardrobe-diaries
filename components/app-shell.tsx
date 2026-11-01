@@ -71,6 +71,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="mx-auto max-w-5xl px-4 pb-28 pt-4 md:pb-10">{children}</main>
 
+      {/* Floating stylist button on every page except the chat itself */}
+      {!pathname.startsWith("/stylist") && (
+        <Link
+          href="/stylist"
+          aria-label="Ask your stylist"
+          className="fixed bottom-24 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform hover:scale-105 md:bottom-6 md:right-6"
+        >
+          <Sparkles className="size-5" />
+        </Link>
+      )}
+
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5">

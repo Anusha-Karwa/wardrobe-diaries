@@ -1,5 +1,14 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { Suspense } from "react";
+import { listItems } from "@/lib/queries";
+import { StylistClient } from "./stylist-client";
 
-export default function Page() {
-  return <ComingSoon title="Stylist" phase={7} blurb="Chat with a stylist who knows your wardrobe and what's trending." />;
+export const dynamic = "force-dynamic";
+
+export default async function StylistPage() {
+  const wardrobe = await listItems();
+  return (
+    <Suspense>
+      <StylistClient wardrobe={wardrobe} />
+    </Suspense>
+  );
 }

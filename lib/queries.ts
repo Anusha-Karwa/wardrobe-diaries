@@ -240,3 +240,38 @@ export async function deleteWishlistItem(id: string) {
   const rows = await sql`delete from wishlist where id = ${id} returning id`;
   return rows.length > 0;
 }
+
+// ---------------------------------------------------------------------------
+// Chat
+// ---------------------------------------------------------------------------
+export interface ChatMessage {
+  id: string;
+  thread_id: string;
+  role: "user" | "assistant";
+  content: string | null;
+  cards: unknown;
+  created_at: string;
+}
+
+export async function getThreadMessages(threadId: string, limit = 50) {
+  const rows = await sql`
+    select * from (select * from chat_messages where thread_id = ${threadId} order by created_at desc limit ${limit}) t
+    order by created_at asc`;
+  return rows as ChatMessage[];
+}
+
+export async function insertChatMessage(m: { thread_id: string; role: "user" | "assistant"; content: string; cards?: unknown }) {
+  const rows = await sql`
+    insert into chat_messages (thread_id, role, content, cards)
+    values (${m.thread_id}, ${m.role}, ${m.content}, ${m.cards ? JSON.stringify(m.cards) : null}::jsonb)
+    returning *`;
+  return rows[0] as ChatMessage;
+}
+
+/** Recent threads with their first user message as a title. */
+export async function listThreads(limit = 15) {
+  return (await sql`
+    select thread_id, max(created_at) as updated_at,
+      (array_agg(content order by created_at) filter (where role = 'user'))[1] as title
+    from chat_messages group by thread_id order by max(created_at) desc limit ${limit}`) as { thread_id: string; updated_at: string; title: string | null }[];
+}

@@ -52,3 +52,14 @@ Each refresh researches 7 category groups (tops, bottoms, dresses & co-ords, eth
 4. **Save** under one `batch_id`. The page shows the newest batch per group, so a daily cron that refreshes 2–3 groups doesn't hide the others.
 
 **Pinterest has no open public trends API**, so the app reads Pinterest, magazine (Vogue India, Elle India, Harper's Bazaar India) and retailer (Myntra/Ajio/Nykaa Fashion) trend coverage through Google Search grounding, and shows the sources on every trend card so you can check them.
+
+## Stylist agent
+
+`/stylist` (plus a floating button on every page) is a Gemini function-calling agent (`lib/agent/`):
+the model must call a tool every turn (mode `ANY`), runs at most 6 tool steps, and can only finish through
+`respond_to_user`. Tools: `search_wardrobe` (taxonomy filters with neighbour fuzzy matching), `get_items`,
+`build_outfits`, `find_gaps`, `get_trends` (refreshes the relevant group if trends are over 3 days old),
+`research_trend_live` (its own Google Search call, never mixed with function calling), `shop_suggestions`,
+`save_to_wishlist`, `save_outfit`. Outfits, buy cards and sources are referenced by keys the tools returned,
+so a reply can't contain invented items, links or sources. Progress streams to the page with Server-Sent Events,
+and threads are stored in `chat_messages`.
