@@ -1,26 +1,82 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* Closet theme: off-white, near-black, deep rose accent, warm amber for trends */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 1rem;
+  --background: #faf8f5;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #b23a48;
+  --primary-foreground: #ffffff;
+  --secondary: #f1ece6;
+  --secondary-foreground: #1a1a1a;
+  --muted: #efebe6;
+  --muted-foreground: #6b6560;
+  --accent: #f4e6e8;
+  --accent-foreground: #8e2c39;
+  --destructive: #c0392b;
+  --border: #e7e1da;
+  --input: #ddd6ce;
+  --ring: #b23a48;
+  --trend: #f5a524;
+  --trend-foreground: #3d2600;
+  --tile: #f0eeeb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-trend: var(--trend);
+  --color-trend-foreground: var(--trend-foreground);
+  --color-tile: var(--tile);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Light checkerboard behind transparent cutouts */
+.checkerboard {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #f1efec 25%, transparent 25%),
+    linear-gradient(-45deg, #f1efec 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f1efec 75%),
+    linear-gradient(-45deg, transparent 75%, #f1efec 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
