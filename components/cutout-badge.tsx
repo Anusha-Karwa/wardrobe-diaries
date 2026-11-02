@@ -1,4 +1,4 @@
-import { Sparkles, Scissors, Crop, Wand2 } from "lucide-react";
+import { Sparkles, Scissors, Crop, Wand2, Globe } from "lucide-react";
 import type { CutoutMethod } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ const META: Record<CutoutMethod, { label: string; icon: typeof Sparkles; classNa
   gemini_mask: { label: "Gemini mask", icon: Scissors, className: "bg-emerald-100 text-emerald-800", title: "Cut out of your photo with a Gemini segmentation mask" },
   ai_product_shot: { label: "AI product shot", icon: Sparkles, className: "bg-violet-100 text-violet-800", title: "Re-drawn by Gemini as a product shot from your photo. Details may differ slightly; you can switch to the real crop." },
   browser_bg_removal: { label: "Real cutout", icon: Wand2, className: "bg-sky-100 text-sky-800", title: "Background removed from your real photo (in your browser)" },
+  online_match: { label: "Online match", icon: Globe, className: "bg-amber-100 text-amber-900", title: "A near-identical product photo found online with Google Lens (background removed)" },
   crop_only: { label: "Crop", icon: Crop, className: "bg-stone-200 text-stone-700", title: "Rectangle crop of your photo" },
 };
 

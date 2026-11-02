@@ -46,6 +46,10 @@ create table if not exists items (
   created_at timestamptz default now()
 );
 
+-- Google Lens "similar online" results (cached) and the one the user picked as the item's picture.
+alter table items add column if not exists online_matches jsonb;
+alter table items add column if not exists matched_product jsonb;
+
 create table if not exists outfits (
   id uuid primary key default gen_random_uuid(),
   name text, style_tag text, occasion text,

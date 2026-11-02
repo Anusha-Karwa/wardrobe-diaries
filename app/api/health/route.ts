@@ -14,6 +14,7 @@ export async function GET() {
     BLOB_READ_WRITE_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
     APP_PASSCODE: !!process.env.APP_PASSCODE,
     CRON_SECRET: !!process.env.CRON_SECRET,
+    SERPAPI_KEY: !!process.env.SERPAPI_KEY,
   };
   let database: string;
   try {

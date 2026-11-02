@@ -33,7 +33,21 @@ export interface Item {
   confidence: number | null;
   user_edited: boolean;
   times_suggested: number;
+  /** Cached Google Lens results (null = never searched). */
+  online_matches?: OnlineMatch[] | null;
+  /** The online product the user picked as this item's picture. */
+  matched_product?: OnlineMatch | null;
   created_at: string;
+}
+
+/** A visually similar product found online (Google Lens via SerpApi). */
+export interface OnlineMatch {
+  title: string;
+  link: string;
+  source: string;
+  thumbnail: string;
+  image: string | null;
+  price: string | null;
 }
 
 /**
@@ -41,8 +55,9 @@ export interface Item {
  * ai_product_shot    – Gemini image model re-draws the item as a product shot (worn items)
  * browser_bg_removal – @imgly/background-removal in the browser (real pixels)
  * crop_only          – padded rectangle crop, no cutout
+ * online_match       – a near-identical product photo found online (Google Lens), background removed
  */
-export type CutoutMethod = "gemini_mask" | "ai_product_shot" | "browser_bg_removal" | "crop_only";
+export type CutoutMethod = "gemini_mask" | "ai_product_shot" | "browser_bg_removal" | "crop_only" | "online_match";
 
 /** Normalised 0..1 box. */
 export interface BBox {

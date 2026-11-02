@@ -8,6 +8,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { ItemImage } from "@/components/item-image";
 import { CutoutBadge } from "@/components/cutout-badge";
+import { SimilarOnline } from "@/components/similar-online";
 import {
   AESTHETICS,
   CATEGORIES,
@@ -93,6 +94,7 @@ export function ReviewCard({
   onDeleted,
   onRedoCutout,
   onUseCrop,
+  autoFindOnline,
 }: {
   item: Item;
   /** Progress text while a browser cutout runs for this item. */
@@ -101,6 +103,8 @@ export function ReviewCard({
   onDeleted: (id: string) => void;
   onRedoCutout: (item: Item) => void;
   onUseCrop: (item: Item) => void;
+  /** Search Google Lens for near-identical products straight away (worn items from mirror selfies). */
+  autoFindOnline?: boolean;
 }) {
   const [draft, setDraft] = useState<Draft>(item);
   const [dirty, setDirty] = useState(false);
@@ -250,6 +254,8 @@ export function ReviewCard({
           </Field>
         </div>
       )}
+
+      <SimilarOnline item={{ ...draft, ...item }} auto={autoFindOnline} onChange={onChange} />
 
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Button size="sm" onClick={save} disabled={!dirty || saving}>

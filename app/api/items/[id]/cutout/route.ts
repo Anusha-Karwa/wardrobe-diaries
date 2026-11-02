@@ -35,7 +35,9 @@ export async function POST(req: Request, { params }: Ctx) {
 
   // New file name each time so browsers/CDN never show a stale cutout.
   const url = await putBlob(`items/${id}-${Date.now()}.png`, finished, "image/png");
-  const updated = await setItemCutout(id, url, "browser_bg_removal");
+  // A cleaned-up online match keeps its "Online match" badge.
+  const method = form?.get("method") === "online_match" && item.cutout_method === "online_match" ? "online_match" : "browser_bg_removal";
+  const updated = await setItemCutout(id, url, method);
   if (item.cutout_url && item.cutout_url !== url) await deleteBlobs([item.cutout_url]);
   return NextResponse.json(updated);
 }

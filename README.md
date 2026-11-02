@@ -97,6 +97,7 @@ Optional: `npm run seed` runs every photo in `seed-images/` through the real pip
 | `DATABASE_URL` | Neon pooled connection string (Vercel → Storage → Neon, or neon.tech → Connect) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Blob store → `.env.local` tab |
 | `CRON_SECRET` | `openssl rand -hex 32`. Vercel sends it to the cron routes as a Bearer token. |
+| `SERPAPI_KEY` | Optional, for "Similar online": serpapi.com → sign up (free, 100 searches/month) → Dashboard → API key |
 | `REQUIRE_PASSCODE` / `APP_PASSCODE` | Optional lock. The app is open unless `REQUIRE_PASSCODE=true`; then it asks for `APP_PASSCODE`. |
 
 Check the wiring at `/api/health`.
@@ -123,6 +124,8 @@ Hobby crons run once a day, accurate to within the hour. Functions use Fluid com
 | Tiny worn items (e.g. a necklace in a full-body shot) | Rectangle crop | Crop |
 
 Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo. Cutout failures never block saving an item.
+
+**Similar online (Google Lens).** With `SERPAPI_KEY` set, each worn item's crop is sent to Google Lens (via SerpApi) after upload, and the card shows up to 4 near-identical products with store and price. Tapping one copies that product photo into Blob, removes its background in the browser, and badges the item **Online match** with a link to the product. Results are cached on the item, so each item uses at most one search (the free plan has 100/month); any other item has a **Find online match** button. Big Indian stores block scraping, so this uses Lens's own image results rather than fetching store pages.
 
 ## Trend engine
 

@@ -260,6 +260,7 @@ export function UploadClient() {
                     setGroups((gs) => gs.map((x) => (x.key === g.key ? { ...x, items: x.items.filter((i) => i.id !== id) } : x)))
                   }
                   onRedoCutout={queueCutout}
+                  autoFindOnline={(g.photoType === "worn" || g.photoType === "mixed") && item.cutout_method !== "crop_only"}
                   onUseCrop={async (it) => {
                     try {
                       replaceItem(await switchToCrop(it.id));
