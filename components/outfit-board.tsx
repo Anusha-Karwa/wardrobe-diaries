@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { Bookmark, BookmarkCheck, Download, Loader2, Share2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Bookmark, BookmarkCheck, Download, Loader2, Share2, Shirt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BOARD_BG, BOARD_H, BOARD_W, CONTENT_H, layoutBoard } from "@/lib/board-layout";
@@ -213,6 +214,11 @@ export function OutfitCard({
           {spin("share") ?? <Share2 />} Share
         </Button>
       </div>
+      <Button asChild size="sm" variant="secondary">
+        <Link href={`/try-on?items=${outfit.item_ids.join(",")}&name=${encodeURIComponent(outfit.name ?? "")}`}>
+          <Shirt /> Try it on me
+        </Link>
+      </Button>
     </div>
   );
 }

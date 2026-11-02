@@ -11,6 +11,9 @@ create table if not exists profile (
   updated_at timestamptz default now()
 );
 
+-- Full-body photo for the virtual fitting room (checked for PG-13 before it's saved).
+alter table profile add column if not exists body_photo_url text;
+
 create table if not exists uploads (
   id uuid primary key default gen_random_uuid(),
   original_url text not null,
@@ -111,6 +114,14 @@ create table if not exists wishlist (
   search_query text,
   price_band text,
   bought boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Virtual try-on renders, cached by (body photo + exact set of items).
+create table if not exists try_ons (
+  key text primary key,
+  image_url text not null,
+  item_ids uuid[] not null,
   created_at timestamptz default now()
 );
 

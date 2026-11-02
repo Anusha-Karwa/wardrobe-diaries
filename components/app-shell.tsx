@@ -20,6 +20,7 @@ const bottomNav = [
 
 const menuNav = [
   { href: "/style", label: "Style me", icon: Wand2 },
+  { href: "/try-on", label: "Fitting room", icon: Shirt },
   { href: "/lookbook", label: "Lookbook", icon: BookHeart },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/settings", label: "Settings", icon: Settings },

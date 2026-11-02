@@ -10,6 +10,7 @@ export interface Profile {
   budget_band: string;
   aesthetics: string[];
   notes: string | null;
+  body_photo_url?: string | null;
   updated_at?: string;
 }
 
@@ -23,7 +24,7 @@ const DEFAULT_PROFILE: Profile = {
 };
 
 export async function getProfile(): Promise<Profile> {
-  const rows = await sql`select name, gender_pref, city, budget_band, aesthetics, notes, updated_at from profile where id = 1`;
+  const rows = await sql`select name, gender_pref, city, budget_band, aesthetics, notes, body_photo_url, updated_at from profile where id = 1`;
   return rows[0] ? { ...DEFAULT_PROFILE, ...(rows[0] as Profile) } : DEFAULT_PROFILE;
 }
 
