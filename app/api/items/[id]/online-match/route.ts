@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     if (parsed.data.action === "use") {
       if (parsed.data.index === undefined) return NextResponse.json({ error: "Pick a match" }, { status: 400 });
-      return NextResponse.json({ item: await applyOnlineMatch(id, parsed.data.index) });
+      return NextResponse.json(await applyOnlineMatch(id, parsed.data.index));
     }
     const r = await getOnlineMatches(id, parsed.data.refresh);
     return NextResponse.json({ matches: r.matches, cached: r.cached });

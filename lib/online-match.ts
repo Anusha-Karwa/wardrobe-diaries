@@ -3,7 +3,11 @@ import { z } from "zod";
 import { deleteBlobs, putBlob } from "./blob";
 import { sql } from "./db";
 import { getItem } from "./queries";
+import { aiProductShot } from "./extraction/product-shot";
+import type { DetectedItem } from "./extraction/detect";
+import type { ItemAttributes } from "./extraction/attributes";
 import type { Item, OnlineMatch } from "./types";
+import { dedupeMatches } from "./utils";
 
 /**
  * "Similar online": Google Lens visual matches (via SerpApi) for an item's crop.
@@ -44,8 +48,14 @@ export async function searchOnlineMatches(item: Item, limit = 4): Promise<Online
   const body = LensResponse.parse(await res.json());
   if (!res.ok || body.error) throw new Error(body.error ?? `SerpApi ${res.status}`);
 
+  const seen = new Set<string>();
   const matches = (body.visual_matches ?? [])
     .filter((m) => m.title && m.link && m.thumbnail && !NOT_SHOPS.test(`${m.source} ${m.link}`))
+    // Lens often lists the same product twice.
+    .filter((m) => {
+      const k = m.link!.split("?")[0];
+      return seen.has(k) ? false : (seen.add(k), true);
+    })
     .map((m, i) => ({
       m,
       // Lens order is visual similarity; nudge real shops (price / Indian stores) up a little.
@@ -68,16 +78,20 @@ export async function searchOnlineMatches(item: Item, limit = 4): Promise<Online
 export async function getOnlineMatches(itemId: string, refresh = false) {
   const item = await getItem(itemId);
   if (!item) throw new Error("Item not found");
-  if (!refresh && Array.isArray(item.online_matches)) return { item, matches: item.online_matches, cached: true };
+  if (!refresh && Array.isArray(item.online_matches)) return { item, matches: dedupeMatches(item.online_matches), cached: true };
   const matches = await searchOnlineMatches(item);
   await sql`update items set online_matches = ${JSON.stringify(matches)}::jsonb where id = ${itemId}`;
   return { item: { ...item, online_matches: matches }, matches, cached: false };
 }
 
-/** Copy a chosen match's photo into Blob and make it the item's picture (background removal happens in the browser next). */
-export async function applyOnlineMatch(itemId: string, index: number) {
+/**
+ * Make a chosen match the item's picture. Store photos usually show the item ON A MODEL, so the photo is passed through
+ * the same "isolate the garment" step as worn items (from a sharp, real product photo of the actual item, so it stays faithful).
+ * If that fails, the plain photo is saved and the browser removes its background (needs_bg_removal).
+ */
+export async function applyOnlineMatch(itemId: string, index: number): Promise<{ item: Item; needs_bg_removal: boolean }> {
   const item = await getItem(itemId);
-  const match = item?.online_matches?.[index];
+  const match = dedupeMatches(item?.online_matches)[index];
   if (!item || !match) throw new Error("Match not found");
 
   let buf: Buffer | null = null;
@@ -96,11 +110,21 @@ export async function applyOnlineMatch(itemId: string, index: number) {
   }
   if (!buf) throw new Error("Couldn't download that product photo. Try another match.");
 
-  const url = await putBlob(`items/${itemId}-match-${Date.now()}.jpg`, buf, "image/jpeg");
+  const asDetected = {
+    label: item.subcategory ?? item.category,
+    box_2d: [0, 0, 1000, 1000],
+    bbox: { x: 0, y: 0, w: 1, h: 1 },
+    attrs: { ...item, description: `${item.description ?? ""} (as in this store photo: ${match.title})` } as unknown as ItemAttributes,
+  } as DetectedItem;
+  const isolated = await aiProductShot(buf, asDetected, 40_000);
+
+  const url = isolated
+    ? await putBlob(`items/${itemId}-match-${Date.now()}.png`, isolated, "image/png")
+    : await putBlob(`items/${itemId}-match-${Date.now()}.jpg`, buf, "image/jpeg");
   const rows = await sql`
     update items set cutout_url = ${url}, cutout_method = 'online_match', matched_product = ${JSON.stringify(match)}::jsonb
     where id = ${itemId} returning *`;
   // Old AI/real cutout files are replaced; the crop is always kept.
   if (item.cutout_url && item.cutout_url !== url) await deleteBlobs([item.cutout_url]);
-  return rows[0] as Item;
+  return { item: rows[0] as Item, needs_bg_removal: !isolated };
 }

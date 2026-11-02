@@ -24,7 +24,7 @@ function promptFor(item: DetectedItem, key: KeyColour) {
   const a = item.attrs;
   const what = a.description || `${labelize(a.primary_color)} ${labelize(a.subcategory)}`;
   const bg = key === "green" ? "pure green #00FF00" : "pure magenta #FF00FF";
-  return `Product photo extraction. This is a close crop of a photo. Isolate ONLY this item: ${what} (${labelize(a.category)} / ${labelize(a.subcategory)}).
+  return `Product photo extraction. This is a photo (a close crop, or a store photo that may show a model). Isolate ONLY this item: ${what} (${labelize(a.category)} / ${labelize(a.subcategory)}).
 Output one image: the exact same item, keeping its colour, wash, print, texture, neckline, straps, hardware, details, damage and proportions exactly as in the photo, shown alone as a front-facing e-commerce product shot (ghost-mannequin or flat-lay style), centred, filling about 80% of the frame.
 Background: perfectly flat, uniform ${bg}. No shadows, no gradient, no floor, no text.
 Remove the person entirely: no skin, hair, face, hands or body, and no other clothing or accessories (straps of a bag crossing the item must be removed). Do not add anything that isn't in the original.`;

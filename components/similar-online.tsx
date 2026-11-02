@@ -4,14 +4,14 @@ import { ExternalLink, Globe, Loader2, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { browserCutout } from "@/lib/client/bg-removal";
 import type { Item, OnlineMatch } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, dedupeMatches } from "@/lib/utils";
 
 /**
  * "Similar online" (Google Lens visual matches): near-identical product photos for this item.
  * Tap one to make it the item's picture; its background is then removed in the browser.
  */
 export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boolean; onChange: (item: Item) => void }) {
-  const [matches, setMatches] = useState<OnlineMatch[] | null>(item.online_matches ?? null);
+  const [matches, setMatches] = useState<OnlineMatch[] | null>(item.online_matches ? dedupeMatches(item.online_matches) : null);
   const [state, setState] = useState<"idle" | "searching" | "error" | "off">("idle");
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState<number | null>(null);
@@ -30,7 +30,7 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
       if (res.status === 501) return setState("off"); // not configured: hide quietly
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Search failed");
-      setMatches(body.matches);
+      setMatches(dedupeMatches(body.matches));
       setState("idle");
     } catch (err) {
       setError((err as Error).message);
@@ -48,7 +48,7 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
 
   async function use(i: number) {
     setPicking(i);
-    setStatus("Saving the product photo…");
+    setStatus("Isolating the item from the store photo…");
     try {
       const res = await fetch(`/api/items/${item.id}/online-match`, {
         method: "POST",
@@ -59,14 +59,16 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
       if (!res.ok) throw new Error(body.error ?? "Couldn't use that photo");
       let updated = body.item as Item;
       onChange(updated);
-      // Remove the product photo's background so it sits on boards like every other cutout.
-      try {
-        let done = false;
-        updated = await browserCutout(updated, (s) => !done && setStatus(s), { source: updated.cutout_url!, keepMethod: "online_match" });
-        done = true;
-        onChange(updated);
-      } catch {
-        /* keep the photo with its background */
+      // Fallback: the server couldn't isolate it, so remove the photo's background here.
+      if (body.needs_bg_removal) {
+        try {
+          let done = false;
+          updated = await browserCutout(updated, (s) => !done && setStatus(s), { source: updated.cutout_url!, keepMethod: "online_match" });
+          done = true;
+          onChange(updated);
+        } catch {
+          /* keep the photo with its background */
+        }
       }
       toast.success("Using the online match as this item's picture");
     } catch (err) {
