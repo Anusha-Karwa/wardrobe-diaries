@@ -3,7 +3,7 @@ import { ArrowRight, Heart, Plus, Wand2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EnsureDrop } from "@/components/ensure-drop";
 import { Runway, type RunwayLook } from "@/components/home/runway";
-import { ClosetRibbon } from "@/components/home/closet-ribbon";
+import { WardrobeHero } from "@/components/home/wardrobe-hero";
 import { FadeIn } from "@/components/home/fade-in";
 import { ShopButtons } from "@/components/buy-card";
 import { shopLinks } from "@/lib/shopping";
@@ -70,6 +70,13 @@ export default async function HomePage() {
         </h1>
       </FadeIn>
 
+      {items.length > 0 && (
+        <FadeIn delay={0.05}>
+          <WardrobeHero items={items} />
+        </FadeIn>
+      )}
+
+      {items.length > 0 && <p className="-mb-3 font-serif text-2xl italic md:text-center">Today&apos;s drop</p>}
       {!items.length ? (
         <FadeIn delay={0.1}>
           <Card className="items-center py-10 text-center">
@@ -81,7 +88,7 @@ export default async function HomePage() {
           </Card>
         </FadeIn>
       ) : looks.length ? (
-        <FadeIn delay={0.05}>
+        <FadeIn delay={0.05} className="md:mx-auto md:max-w-xl">
           <Runway looks={looks} />
         </FadeIn>
       ) : (
@@ -117,18 +124,6 @@ export default async function HomePage() {
               <ShopButtons links={missing.links} className="sm:grid-cols-4" />
             </div>
           </div>
-        </FadeIn>
-      )}
-
-      {items.length > 0 && (
-        <FadeIn delay={0.25} className="space-y-2">
-          <div className="flex items-baseline justify-between">
-            <p className="font-serif text-xl italic">Your closet</p>
-            <Link href="/wardrobe" className="text-sm font-bold text-primary">
-              {items.length} pieces →
-            </Link>
-          </div>
-          <ClosetRibbon items={items} />
         </FadeIn>
       )}
 

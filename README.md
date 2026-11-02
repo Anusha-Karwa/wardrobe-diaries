@@ -18,7 +18,7 @@ Upload photos of your clothes; Closet finds every item, cuts each one out, and t
 
 ## Look and feel
 
-**Coquette Bow** theme (chosen from 15 directions): ivory, ribbon red and rose, Playfair Display italic with Nunito, soft rounded cards with dashed "lace" edges and a faint dot pattern. Motion uses `framer-motion` and respects reduced-motion settings: on Home, outfit pieces glide onto a runway one by one, hold, drift away and the next look comes in; the closet glides past in a ribbon; cards ease in on load. The stylist is a hanger-tee button in the corner of every page (not in any menu). Menus and wardrobe filters (groups and options) are alphabetical, and a filter with more than 5 options shows 5 plus "Show more".
+**Coquette Bow** theme (chosen from 15 directions): ivory, ribbon red and rose, Playfair Display italic with Nunito, soft rounded cards with dashed "lace" edges and a faint dot pattern. Motion uses `framer-motion` and respects reduced-motion settings: Home opens on an **interactive wardrobe** (inspired by a furniture-configurator animation): your tops, dresses and jackets hang and sway on the rail, bottoms and bags sit on shelves, shoes and jewellery live in drawers. On load the lights come on, the door slides open and the drawers slide out; Lights (on/off), Door (open/wood/frosted glass) and Drawers (closed/open) can be toggled, ‹ › browses the rail, and every piece links to its page. Below it, today's outfit pieces glide onto a runway one by one, hold, drift away and the next look comes in; cards ease in on load. The stylist is a hanger-tee button in the corner of every page (not in any menu). Menus and wardrobe filters (groups and options) are alphabetical, and a filter with more than 5 options shows 5 plus "Show more".
 
 ## Stack
 
