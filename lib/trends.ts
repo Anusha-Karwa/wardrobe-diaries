@@ -247,7 +247,9 @@ export async function structureTrends(
   text: string,
   sources: (Source | null)[],
   genderPref: string,
-  supports: Support[] = []
+  supports: Support[] = [],
+  /** Lower thinking for speed; refreshGroup retries at default effort if too few trends come back. */
+  fast = true
 ): Promise<StructuredTrend[]> {
   if (!text.trim()) return [];
   const raw = await generateJson(
@@ -266,7 +268,7 @@ ${text}`,
       responseSchema: TREND_SCHEMA,
       config: { temperature: 0.2 },
     },
-    { label: "trends:structure", timeoutMs: 60_000, thinkingLevel: "LOW" }
+    { label: "trends:structure", timeoutMs: 60_000, thinkingLevel: fast ? "LOW" : undefined }
   );
 
   return raw.trends.map((t) => {
@@ -323,7 +325,13 @@ export async function refreshGroup(groupKey: GroupKey, opts: { batchId?: string;
   const started = Date.now();
   const profile = await getProfile();
   const { text, sources, supports } = await researchGroup(groupKey, profile.gender_pref);
-  const structured = await structureTrends(text, sources, profile.gender_pref, supports);
+  let structured = await structureTrends(text, sources, profile.gender_pref, supports);
+  if (structured.length < 3 && text.length > 800) {
+    // The research listed 4–6 trends; a short result means the fast pass skipped some. Retry once, thinking normally.
+    console.warn(`[trends] ${groupKey}: only ${structured.length} trend(s) structured, retrying at normal effort`);
+    const retry = await structureTrends(text, sources, profile.gender_pref, supports, false).catch(() => []);
+    if (retry.length > structured.length) structured = retry;
+  }
   const batchId = opts.batchId ?? randomUUID();
   const ids = await saveTrends(batchId, opts.period ?? "daily", groupKey, structured);
   const nSources = sources.filter(Boolean).length;

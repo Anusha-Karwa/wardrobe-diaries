@@ -26,7 +26,10 @@ const TOO_SMALL_FOR_PRODUCT_SHOT = 0.004;
  * The extraction pipeline (spec 6a). One photo in → saved items out.
  * Every stage is timed; any cutout failure falls back (browser removal → crop) and never blocks saving.
  */
-export async function runPipeline(file: Buffer, opts: { budgetMs?: number } = {}): Promise<PipelineResult> {
+export async function runPipeline(
+  file: Buffer,
+  opts: { budgetMs?: number; /** false when there's no browser (seed script): keep the crop instead. */ clientCutout?: boolean } = {}
+): Promise<PipelineResult> {
   const started = Date.now();
   const deadline = started + (opts.budgetMs ?? 52_000);
   const timings: Record<string, number> = {};
@@ -93,6 +96,7 @@ export async function runPipeline(file: Buffer, opts: { budgetMs?: number } = {}
       }
       // Tiny worn items (e.g. a necklace in a full-body selfie): a cutout would be mush, keep the crop.
       if (!cutout && worn && area(item.bbox) < TOO_SMALL_FOR_PRODUCT_SHOT) method = "crop_only";
+      if (!cutout && opts.clientCutout === false) method = "crop_only";
 
       const [cropUrl, cutoutUrl] = await Promise.all([
         putBlob(`items/${id}-crop.jpg`, crop, "image/jpeg"),

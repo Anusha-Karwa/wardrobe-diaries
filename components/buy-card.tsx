@@ -112,7 +112,9 @@ export function BuyCard({ card, wardrobe, saved: savedInitially = false }: { car
       </div>
 
       {card.why && <p className="text-sm leading-snug text-foreground/80">{card.why}</p>}
-      {card.trend && <p className="text-xs text-trend-foreground">🔥 Part of the “{card.trend.title}” trend right now.</p>}
+      {card.trend && card.trend.title.toLowerCase() !== card.title.toLowerCase() && (
+        <p className="text-xs text-trend-foreground">🔥 Part of the “{card.trend.title}” trend right now.</p>
+      )}
       <PairsWith ids={card.pairs_with_item_ids} wardrobe={wardrobe} />
 
       <ShopButtons links={card.links} />

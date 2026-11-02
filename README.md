@@ -1,32 +1,118 @@
 # Closet: AI wardrobe stylist + trend agent
 
-Next.js (App Router) · Gemini (`@google/genai`) · Neon Postgres · Vercel Blob · Vercel Cron.
+Upload photos of your clothes; Closet finds every item, cuts each one out, and tags it like a Myntra/Ajio listing. Then it builds outfits from what you own, tells you what's trending this week (researched daily with Google Search), and when your wardrobe falls short, tells you exactly what to buy, with Myntra, Ajio, Nykaa Fashion and Amazon search links.
 
-> The full README (architecture diagram, demo script, limitations) is written in the final phase.
+**Live:** https://wardrobe-diaries-1i7u.vercel.app
+
+## What it does
+
+| Area | Pages | Highlights |
+|---|---|---|
+| Digitise | `/upload` | One photo per request: detect every item, cut it out, extract ~25 attributes; review and edit every attribute; debug box view |
+| Browse | `/wardrobe`, `/item/[id]` | Myntra-style filters with counts, search, shareable filter URLs |
+| Style | `/style`, `/lookbook` | Anchor mode (one item, 5 ways) and occasion mode; Pinterest-style outfit boards (PNG); save, download, share |
+| Stylist agent | `/stylist` + floating button | Gemini function-calling agent: wardrobe first, then gaps, trends and shop links; answers as cards |
+| Trends | `/trends` | 7 category groups researched with Google Search grounding, sources on every card, Owned ✓ / Missing |
+| Drops | `/` (Home), `/weekly` | Daily outfit of the day + trending item you're missing; weekly headline, top trends, 3 smart buys |
+| Shopping | `/wishlist` | "To buy" cards with marketplace search links, trend badges, price bands |
+
+## Stack
+
+Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 + shadcn/ui · Google Gemini (`@google/genai`) · Neon Postgres (`@neondatabase/serverless`, no ORM) · Vercel Blob · Vercel Cron · sharp · `@imgly/background-removal` (browser) · zod · react-markdown.
+
+Models: `GEMINI_MODEL` (default `gemini-flash-latest`; the live site pins `gemini-3.8-flash`) and `GEMINI_IMAGE_MODEL` (default `gemini-3.1-flash-image`) for product-shot cutouts.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph BROWSER["Browser"]
+    UP["/upload<br/>compress to 1600px"]
+    BG["@imgly background removal<br/>(flat lays, real pixels)"]
+    CHAT["/stylist chat<br/>(SSE progress)"]
+    HOME["Home / Weekly / Trends"]
+  end
+
+  subgraph PIPE["POST /api/upload (lib/extraction)"]
+    S1["1 Normalise<br/>sharp rotate → JPEG"] --> S2["2 Detect + describe<br/>Gemini structured output<br/>boxes + taxonomy"]
+    S2 --> S3{"Photo type?"}
+    S3 -- worn --> S4["AI product shot<br/>Gemini image model + chroma key"]
+    S3 -- "flat lay / hanger" --> S5["crop → needs_client_cutout"]
+    S4 --> S6["trim + pad → Blob<br/>insert items"]
+    S5 --> S6
+  end
+
+  subgraph AGENT["POST /api/agent (lib/agent)"]
+    LOOP["Gemini function calling<br/>mode ANY, max 6 steps"] --> T1["search_wardrobe · get_items"]
+    LOOP --> T2["build_outfits · find_gaps<br/>(lib/outfits)"]
+    LOOP --> T3["get_trends · research_trend_live<br/>(own grounded call)"]
+    LOOP --> T4["shop_suggestions<br/>(lib/shopping)"]
+    LOOP --> T5["save_outfit · save_to_wishlist"]
+    LOOP --> FIN["respond_to_user → validated cards"]
+  end
+
+  subgraph TRENDS["Trend engine (lib/trends)"]
+    R1["Research per group<br/>Gemini + Google Search, text"] --> R2["Structure<br/>Gemini JSON, no tools"]
+    R2 --> R3["Match: code = owned/missing<br/>Gemini = pairs + notes"]
+  end
+
+  subgraph CRON["Vercel Cron"]
+    D["/api/cron/daily 08:00 IST<br/>3 groups + daily drop"]
+    W["/api/cron/weekly Mon 08:30 IST<br/>all groups + weekly drop"]
+  end
+
+  UP --> S1
+  S6 -->|items| BG -->|PNG| S6
+  CHAT --> LOOP
+  D --> R1
+  W --> R1
+  D --> DROP["lib/drops: outfit of the day,<br/>smart buys, board PNG"]
+  W --> DROP
+  HOME --> DROP
+  S6 --> DB[(Neon Postgres)]
+  R3 --> DB
+  DROP --> DB
+  FIN --> DB
+  S6 --> BLOB[(Vercel Blob<br/>originals · items · boards)]
+  DROP --> BLOB
+```
 
 ## Local setup
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in the values (see below)
+cp .env.example .env.local   # fill in the values below
 npm run db:setup             # creates all tables (safe to re-run)
 npm run dev                  # http://localhost:3000
 ```
 
+Optional: `npm run seed` runs every photo in `seed-images/` through the real pipeline (skipping files it has seeded before) and refreshes trends, so a fresh database is never empty. Seeded flat lays keep their crop; open an item and tap **Real cutout**. `npm test` runs the unit tests (shop URL formats, trend matching).
+
 | Variable | Where to get it |
 |---|---|
 | `GEMINI_API_KEY` | aistudio.google.com → Get API key |
-| `GEMINI_MODEL` | Optional. Blank = `gemini-flash-latest` alias. Pin a version from the Gemini models page if you prefer. |
-| `DATABASE_URL` | Neon pooled connection string (Vercel → Storage → Neon, or neon.tech → Connect → "Pooled connection") |
+| `GEMINI_MODEL` | Optional. Blank = `gemini-flash-latest`. |
+| `GEMINI_IMAGE_MODEL` | Optional. Default `gemini-3.1-flash-image`. |
+| `GEMINI_SEGMENTATION` | Optional, default `off` (see limitations). |
+| `DATABASE_URL` | Neon pooled connection string (Vercel → Storage → Neon, or neon.tech → Connect) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Blob store → `.env.local` tab |
+| `CRON_SECRET` | `openssl rand -hex 32`. Vercel sends it to the cron routes as a Bearer token. |
 | `REQUIRE_PASSCODE` / `APP_PASSCODE` | Optional lock. The app is open unless `REQUIRE_PASSCODE=true`; then it asks for `APP_PASSCODE`. |
-| `CRON_SECRET` | `openssl rand -hex 32` |
 
-If the project is linked to Vercel, `vercel link` then `vercel env pull .env.local` fills in the storage values for you.
+Check the wiring at `/api/health`.
 
-Optional: `GEMINI_IMAGE_MODEL` (default `gemini-3.1-flash-image`) and `GEMINI_SEGMENTATION` (default `off`).
+## Deploying
 
-Check wiring at `/api/health` (after logging in).
+1. Import the GitHub repo in Vercel. `vercel.json` sets the framework (Next.js), the region (`sin1`, next to Neon Singapore) and the two crons.
+2. Storage tab: connect Neon and Blob. Add `GEMINI_API_KEY`, `GEMINI_MODEL`, `BLOB_READ_WRITE_TOKEN` (if Vercel didn't add it) and `CRON_SECRET`. Redeploy.
+3. Run `npm run db:setup` once against the production `DATABASE_URL`.
+4. Trigger the daily job once by hand:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://wardrobe-diaries-1i7u.vercel.app/api/cron/daily
+```
+
+Hobby crons run once a day, accurate to within the hour. Functions use Fluid compute (up to 300 s); the trend page still refreshes one group per request so it can show progress. If a drop is missing (e.g. the very first visit), Home builds it on demand.
 
 ## How the extraction pipeline cuts items out
 
@@ -36,30 +122,43 @@ Check wiring at `/api/health` (after logging in).
 | Worn (mirror selfie) | Gemini's image model re-draws each item as a product shot on a key colour, which sharp removes | AI product shot |
 | Tiny worn items (e.g. a necklace in a full-body shot) | Rectangle crop | Crop |
 
-Gemini segmentation masks (the spec's original Stage 3) are implemented in `lib/extraction/segment.ts` but **off by default**: on current Gemini 3 Flash models they took ~50 s per item and came back empty, and `gemini-2.5-flash` is no longer offered to new API keys. Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo.
-
-`seed-images/` holds three AI-generated test photos (a mirror selfie and two flat lays) used to test the pipeline.
-
-Fonts in `assets/fonts` (Playfair Display, Inter) are from Google Fonts under the SIL Open Font License; they are bundled because Vercel has no system fonts for the board renderer.
+Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo. Cutout failures never block saving an item.
 
 ## Trend engine
 
 Each refresh researches 7 category groups (tops, bottoms, dresses & co-ords, ethnic & festive, footwear, jewellery, bags & accessories):
 
-1. **Research:** Gemini with the Google Search tool, plain text. Grounding sources are resolved from Google's redirect links to the real article URLs.
-2. **Structure:** a separate Gemini call (no tools) turns the text into JSON using the wardrobe taxonomy. Search grounding and structured output are never combined in one request.
-3. **Match:** code decides *owned* (the item must match every defining attribute, including at least one distinctive one such as neckline, fit, fabric or pattern; type, length or mood alone never count). One batched Gemini call then picks what each trend pairs with and writes a note.
-4. **Save** under one `batch_id`. The page shows the newest batch per group, so a daily cron that refreshes 2–3 groups doesn't hide the others.
+1. **Research:** Gemini with the Google Search tool, plain text, with an explicit instruction to search (and one retry if no sources come back). Grounding redirect links are resolved to the real article URLs, and each trend cites the sources that support its own sentences.
+2. **Structure:** a separate Gemini call (no tools) turns the text into JSON using the wardrobe taxonomy. Search grounding and structured output are never combined in one request. Taxonomy words in a trend's title (barrel, halter, lace, velvet…) are added back if the model dropped them.
+3. **Match:** code decides *owned*: the item must match every defining attribute, including at least one distinctive one (neckline, fit, fabric, pattern, embellishment, metal tone or colour). Type, length or mood alone never count. One batched Gemini call then picks what each trend pairs with and writes a note.
+4. **Save** under one `batch_id`. Pages show the newest batch per group, so the daily cron's 3-group refresh doesn't hide the others.
 
 **Pinterest has no open public trends API**, so the app reads Pinterest, magazine (Vogue India, Elle India, Harper's Bazaar India) and retailer (Myntra/Ajio/Nykaa Fashion) trend coverage through Google Search grounding, and shows the sources on every trend card so you can check them.
 
 ## Stylist agent
 
-`/stylist` (plus a floating button on every page) is a Gemini function-calling agent (`lib/agent/`):
-the model must call a tool every turn (mode `ANY`), runs at most 6 tool steps, and can only finish through
-`respond_to_user`. Tools: `search_wardrobe` (taxonomy filters with neighbour fuzzy matching), `get_items`,
-`build_outfits`, `find_gaps`, `get_trends` (refreshes the relevant group if trends are over 3 days old),
-`research_trend_live` (its own Google Search call, never mixed with function calling), `shop_suggestions`,
-`save_to_wishlist`, `save_outfit`. Outfits, buy cards and sources are referenced by keys the tools returned,
-so a reply can't contain invented items, links or sources. Progress streams to the page with Server-Sent Events,
-and threads are stored in `chat_messages`.
+`/stylist` is a Gemini function-calling agent (`lib/agent/`): the model must call a tool every turn (mode `ANY`), runs at most 6 tool steps, and can only finish through `respond_to_user` (forced on the last step). Tools: `search_wardrobe` (taxonomy filters with neighbour fuzzy matching), `get_items`, `build_outfits`, `find_gaps`, `get_trends` (refreshes the relevant group if trends are over 3 days old), `research_trend_live` (its own Google Search call), `shop_suggestions`, `save_to_wishlist`, `save_outfit`. Outfits, buy cards and sources are referenced by keys the tools returned, and item ids are checked against the wardrobe, so a reply can't contain invented items, links or sources. Progress streams over Server-Sent Events; threads live in `chat_messages`.
+
+## 90-second demo script
+
+1. **Upload (0:00–0:20).** Upload a mirror selfie. Point out the progress copy, then the cards: top, jeans, bag and sneakers, each cut out and tagged. Tap **Debug boxes** to show the detections and stage timings, and the cutout-method badges.
+2. **Filters (0:20–0:30).** Wardrobe → filters → **Bottomwear + Black**. Counts update like Myntra.
+3. **Trends (0:30–0:45).** Open **Trends**: 35 trends, each with sources. Filter **Missing**, open "Barrel-leg jeans": *you don't own one yet; it would go with your white crop top and blazer*, plus Myntra/Ajio/Nykaa/Amazon buttons.
+4. **Stylist (0:45–1:10).** Ask: *"What can I wear with my black jeans? I have nothing."* Show the step chips, the outfit boards built only from your wardrobe, then the To buy cards with 🔥 trend badges and shop links.
+5. **Lookbook (1:10–1:20).** Tap **Save** on a board and open the Lookbook; download the PNG.
+6. **Today's drop (1:20–1:30).** Back to Home: the weekly drop banner, today's outfit of the day and the trending piece you're missing.
+
+## Known limitations (and how I'd fix them)
+
+| Limitation | Fix with more time |
+|---|---|
+| **Cutouts:** Gemini segmentation masks are slow and come back empty on current Gemini 3 Flash models, so worn items use AI product shots, which re-draw the item (small details can differ). Busy photos can confuse browser removal. | A dedicated segmentation model (SAM 2 / Grounded-SAM on a GPU endpoint) for real-pixel masks on worn items; keep product shots as an opt-in "clean-up". |
+| **Fabric is a best guess** from a photo. | Ask for a close-up or label photo; let the user confirm fabric once, then remember brand/fabric pairs. |
+| **Sizes aren't read from photos.** | Read size labels from a label photo; store size per brand and use it to filter shop searches. |
+| **Trend accuracy depends on search results** and on the model's reading of them; very new or niche trends can be missed. | Add fixed sources (retailer "new in" pages, Pinterest Trends exports), dedupe across days, and track how long each trend has persisted. |
+| **Shopping links are searches, not exact products.** | Affiliate/product APIs (Amazon PA-API, Myntra/Ajio partner feeds) for real products, prices and sizes. |
+| **Free-tier rate limits** (Gemini requests, Google Search grounding per day). | Enable billing on the key, cache more aggressively, and queue trend research through the day. |
+| **Agent replies take 12–80 s** because outfit building is a full Gemini call. | Stream partial results, cache outfits per anchor/occasion, and use a faster model for the planning steps. |
+| **Single user,** no accounts. | Auth (e.g. Clerk/Auth.js) and a `user_id` on every table. |
+
+Fonts in `assets/fonts` (Playfair Display, Inter) are from Google Fonts under the SIL Open Font License; they are bundled because Vercel has no system fonts for the board renderer.
