@@ -90,7 +90,7 @@ export function BuyCard({ card, wardrobe, saved: savedInitially = false }: { car
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-4 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
+    <div className="flex flex-col gap-3 paper p-4">
       <div className="flex items-start gap-3">
         <span
           className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-black/10"

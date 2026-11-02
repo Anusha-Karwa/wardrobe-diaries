@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ItemImage } from "@/components/item-image";
+import { Tape, tiltFor } from "@/components/diary/stickers";
 import {
   EMPTY_FILTERS,
   FILTER_GROUPS,
@@ -69,8 +70,8 @@ export function WardrobeClient({ items }: { items: Item[] }) {
   if (!items.length) {
     return (
       <div className="py-16 text-center">
-        <h1 className="text-3xl font-semibold">Your closet is empty</h1>
-        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Upload a few photos: flat lays, hanger shots or a mirror selfie. Closet will cut out and tag every piece.</p>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my closet is empty (for now!)</span></h1>
+        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Upload a few photos: flat lays, hanger shots or a mirror selfie. I will cut out and tag every piece.</p>
         <Button asChild className="mt-6">
           <Link href="/upload">
             <Plus /> Add clothes
@@ -88,7 +89,7 @@ export function WardrobeClient({ items }: { items: Item[] }) {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">Wardrobe</h1>
+          <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my wardrobe</span></h1>
           <p className="text-sm text-muted-foreground">
             {visible.length === items.length ? `${items.length} pieces` : `${visible.length} of ${items.length} pieces`}
           </p>
@@ -181,17 +182,26 @@ export function WardrobeClient({ items }: { items: Item[] }) {
 
         <div className="min-w-0 flex-1">
           {visible.length ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-2 sm:grid-cols-3 lg:grid-cols-4">
               {visible.map((item, i) => (
-                <Link key={item.id} href={`/item/${item.id}`} className="group">
-                  <ItemImage item={item} priority={i < 6} className="transition-transform group-hover:scale-[1.02]" />
-                  <div className="mt-1.5 flex items-start gap-1.5">
+                <Link
+                  key={item.id}
+                  href={`/item/${item.id}`}
+                  title={item.description ?? ""}
+                  className="polaroid group relative block transition-transform hover:z-10 hover:scale-[1.03] hover:!rotate-0"
+                  style={{ rotate: `${tiltFor(i)}deg` }}
+                >
+                  {i % 3 === 0 && <Tape seed={i} className="-top-2.5 left-1/2 h-4 w-14 -translate-x-1/2 rotate-2" />}
+                  <ItemImage item={item} priority={i < 6} className="rounded-sm" />
+                  <p className="absolute inset-x-2 bottom-1 flex items-center gap-1 truncate font-serif text-lg font-bold leading-none">
                     <span
-                      className="mt-1 size-2.5 shrink-0 rounded-full border border-black/10"
+                      className="size-2.5 shrink-0 rounded-full border border-black/10"
                       style={{ background: COLOR_SWATCH[item.primary_color as keyof typeof COLOR_SWATCH] ?? item.primary_color_hex ?? "#ccc" }}
                     />
-                    <p className="line-clamp-2 text-xs leading-snug text-foreground/80">{item.description}</p>
-                  </div>
+                    <span className="truncate">
+                      {labelize(item.primary_color).toLowerCase()} {labelize(item.subcategory && item.subcategory !== "other" ? item.subcategory : item.category).toLowerCase()}
+                    </span>
+                  </p>
                 </Link>
               ))}
             </div>

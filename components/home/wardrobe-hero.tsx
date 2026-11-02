@@ -30,7 +30,7 @@ function Hanger() {
 function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { v: T; l: string }[]; onChange: (v: T) => void }) {
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="font-serif text-lg font-bold leading-none text-muted-foreground">{label.toLowerCase()}</p>
       <div className="inline-flex rounded-full border border-dashed border-lace bg-white p-0.5">
         {options.map((o) => (
           <button
@@ -211,7 +211,7 @@ export function WardrobeHero({ items }: { items: Item[] }) {
       {/* Configurator panel */}
       <div className="flex flex-wrap gap-x-5 gap-y-3 md:flex-col">
         <div className="w-full">
-          <p className="font-serif text-2xl font-semibold italic leading-tight">Your wardrobe</p>
+          <p className="font-serif text-4xl font-bold leading-none"><span className="marker">my wardrobe</span></p>
           <p className="text-xs text-muted-foreground">
             {items.length} pieces · {hanging.length} hanging · {drawered.length} in drawers
           </p>

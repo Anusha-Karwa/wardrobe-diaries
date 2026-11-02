@@ -287,9 +287,9 @@ export function FittingRoom({
 
   // ----- Closet picker (left panel on desktop, below on mobile) -----
   const closet = (
-    <div className="space-y-3 rounded-3xl border bg-card p-4 shadow-sm">
+    <div className="space-y-3 paper p-4">
       <div className="flex items-center justify-between">
-        <p className="font-serif text-lg font-semibold tracking-wide">YOUR CLOSET</p>
+        <p className="font-serif text-3xl font-bold leading-none">my closet</p>
         <span className="text-xs text-muted-foreground">{wardrobe.length} pieces</span>
       </div>
       <div className="flex gap-3 overflow-x-auto border-b pb-2 text-sm">
@@ -324,7 +324,7 @@ export function FittingRoom({
   // ----- Right panel: Your look, Style & fit, Shop the look, Recommended -----
   const panel = (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-3xl border bg-card p-4 shadow-sm">
+      <div className="space-y-3 paper p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Your look{name ? ` · ${name}` : ""}</p>
         {look.length ? (
           <ul className="divide-y">
@@ -371,7 +371,7 @@ export function FittingRoom({
       </div>
 
       {recommended.length > 0 && (
-        <div className="space-y-3 rounded-3xl border bg-card p-4 shadow-sm">
+        <div className="space-y-3 paper p-4">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
             <Sparkles className="size-4 text-primary" /> Recommended for you
           </p>
@@ -412,7 +412,7 @@ export function FittingRoom({
           <ArrowLeft className="size-4" />
         </Link>
         <div>
-          <h1 className="font-serif text-2xl font-semibold tracking-wide">Fitting room</h1>
+          <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my fitting room</span></h1>
           <p className="text-xs text-muted-foreground">Mix and match your closet, and see it on you.</p>
         </div>
       </div>

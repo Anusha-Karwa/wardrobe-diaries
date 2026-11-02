@@ -17,7 +17,7 @@ export default async function WeeklyPage() {
   if (!drop) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-semibold">Weekly drop</h1>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">this week&apos;s note</span></h1>
         <p className="text-muted-foreground">Preparing this week&apos;s drop…</p>
         <EnsureDrop period="weekly" />
       </div>
@@ -41,7 +41,7 @@ export default async function WeeklyPage() {
         <h2 className="text-xl font-semibold">This week&apos;s top trends</h2>
         <ol className="space-y-2">
           {top.map((t, i) => (
-            <li key={t!.id} className="flex items-start gap-3 rounded-2xl border bg-card p-3">
+            <li key={t!.id} className="flex items-start gap-3 paper p-3">
               <span className="font-serif text-2xl font-semibold text-primary">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="font-medium leading-snug">

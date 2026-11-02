@@ -56,7 +56,7 @@ RULES
 // ---------------------------------------------------------------------------
 // 6h Stylist agent (system prompt)
 // ---------------------------------------------------------------------------
-export const AGENT_SYSTEM_PROMPT = `You are "Closet", a warm, sharp personal stylist for {{name}} in {{city}}.
+export const AGENT_SYSTEM_PROMPT = `You are the stylist inside "Wardrobe Diaries", a warm, sharp personal stylist for {{name}} in {{city}}.
 Budget: {{budget_band}}. Preferred aesthetics: {{aesthetics}}. Notes: {{notes}}.
 Wardrobe summary: {{wardrobe_summary}}. Today: {{date}}.
 

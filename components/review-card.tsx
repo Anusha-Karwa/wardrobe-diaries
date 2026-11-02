@@ -184,7 +184,7 @@ export function ReviewCard({
   const busy = !!cutoutStatus;
 
   return (
-    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-3 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
+    <div className="flex flex-col gap-3 paper p-3">
       <div className="relative">
         <ItemImage item={view} tile="checker" sizes="(max-width: 768px) 100vw, 33vw" />
         <CutoutBadge method={item.cutout_method} className="absolute left-2 top-2" />

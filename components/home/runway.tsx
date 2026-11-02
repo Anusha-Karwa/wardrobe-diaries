@@ -47,7 +47,7 @@ export function Runway({ looks }: { looks: RunwayLook[] }) {
 
   return (
     <div className="space-y-3" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div className="relative overflow-hidden rounded-[2rem] border border-dashed border-lace bg-gradient-to-b from-white to-[#fbefec] shadow-[0_18px_40px_rgba(200,16,46,0.08)]" style={{ aspectRatio: `${BOARD_W}/${H}` }}>
+      <div className="paper relative overflow-hidden" style={{ aspectRatio: `${BOARD_W}/${H}`, backgroundImage: "radial-gradient(var(--dot) 1.2px, transparent 1.4px)", backgroundSize: "22px 22px" }}>
         {/* soft spotlight + podium */}
         <div className="pointer-events-none absolute inset-x-[12%] bottom-[4%] h-[9%] rounded-[50%] bg-[#f7e2dd] blur-[1px]" />
         <AnimatePresence mode="popLayout">
@@ -76,7 +76,7 @@ export function Runway({ looks }: { looks: RunwayLook[] }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={look.key}
-            className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-primary shadow-sm"
+            className="absolute left-4 top-4 -rotate-2 rounded-sm bg-[var(--tape-pink)] px-3 py-0.5 font-serif text-lg font-bold text-foreground shadow-sm"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -108,7 +108,7 @@ export function Runway({ looks }: { looks: RunwayLook[] }) {
           exit={{ opacity: 0, y: -6 }}
         >
           <div className="min-w-0">
-            <p className="truncate font-serif text-2xl font-semibold italic leading-tight">{look.name}</p>
+            <p className="truncate font-serif text-3xl font-bold leading-none">{look.name}</p>
             {look.tag && <p className="text-sm font-semibold text-primary">{labelize(look.tag)}</p>}
           </div>
           <Link

@@ -3,30 +3,36 @@
 
 /* Closet theme: off-white, near-black, deep rose accent, warm amber for trends */
 :root {
-  /* Coquette Bow: ivory, ribbon red, rose, lace */
-  --radius: 1.375rem;
-  --background: #fffaf3;
-  --foreground: #4a1820;
-  --card: #ffffff;
-  --card-foreground: #4a1820;
-  --popover: #ffffff;
-  --popover-foreground: #4a1820;
-  --primary: #c8102e;
+  /* Wardrobe Diaries: a cute bullet journal. Cream dotted paper, plum ink, pink marker, pastel washi tape. */
+  --radius: 1.25rem;
+  --background: #fffdf6;
+  --foreground: #3b2a2f;
+  --card: #fffefa;
+  --card-foreground: #3b2a2f;
+  --popover: #fffefa;
+  --popover-foreground: #3b2a2f;
+  --primary: #e2546f;
   --primary-foreground: #ffffff;
-  --secondary: #fbe3e6;
-  --secondary-foreground: #4a1820;
-  --muted: #f8ede9;
-  --muted-foreground: #8f646b;
-  --accent: #fbe3e6;
-  --accent-foreground: #a50d26;
-  --destructive: #b3261e;
-  --border: #f1dcd6;
-  --input: #ecd0cb;
-  --ring: #c8102e;
-  --trend: #f3d98a;
-  --trend-foreground: #5a3c00;
-  --tile: #fbf1ee;
-  --lace: #f0c9cf;
+  --secondary: #ffe3ea;
+  --secondary-foreground: #3b2a2f;
+  --muted: #f6f0e4;
+  --muted-foreground: #85707a;
+  --accent: #ffe3ea;
+  --accent-foreground: #b8314d;
+  --destructive: #c4372f;
+  --border: #ebe1d1;
+  --input: #e4d8c6;
+  --ring: #e2546f;
+  --trend: #fff1b8;
+  --trend-foreground: #5a4500;
+  --tile: #fbf6ec;
+  --lace: #ecd9cf;
+  --dot: #e3d8c6;
+  --tape-pink: #f9c6d3;
+  --tape-mint: #c9ecdc;
+  --tape-butter: #fbe8a6;
+  --tape-lilac: #ddd3f7;
+  --marker: #fff09a;
 }
 
 @theme inline {
@@ -66,9 +72,10 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* tiny lace dots */
-    background-image: radial-gradient(var(--border) 1px, transparent 1.2px);
-    background-size: 14px 14px;
+    /* dotted journal page */
+    background-image: radial-gradient(var(--dot) 1.2px, transparent 1.4px);
+    background-size: 22px 22px;
+    background-position: 11px 11px;
   }
   h1, h2, h3 {
     @apply font-serif;
@@ -104,3 +111,50 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-sway, .animate-drift { animation: none; }
 }
+
+/* ---------- Diary kit ---------- */
+/* Handwritten headings: the handwriting font has no italic, so never fake-slant it. */
+.font-serif { font-style: normal; letter-spacing: 0.01em; }
+h1.font-serif, h2.font-serif, .font-serif.text-4xl, .font-serif.text-5xl { line-height: 1; }
+
+/* Highlighter marker under a word */
+.marker {
+  background: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 90%, transparent 90%);
+  padding-inline: 0.15em;
+  box-decoration-break: clone;
+}
+
+/* A sheet of journal paper */
+.paper {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 var(--border), 0 10px 24px rgba(59, 42, 47, 0.07);
+}
+
+/* Polaroid frame */
+.polaroid {
+  background: #fff;
+  padding: 8px 8px 30px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(59, 42, 47, 0.08), 0 10px 20px rgba(59, 42, 47, 0.1);
+}
+
+/* Washi tape strip (pattern set via --tape and modifier classes) */
+.tape {
+  position: absolute;
+  height: 22px;
+  width: 78px;
+  background: var(--tape, var(--tape-pink));
+  opacity: 0.88;
+  clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 5;
+}
+.tape-dots { background-image: radial-gradient(rgba(255, 255, 255, 0.9) 2px, transparent 2.2px); background-size: 9px 9px; }
+.tape-stripes { background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.65) 0 4px, transparent 4px 9px); }
+.tape-grid { background-image: linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px); background-size: 7px 7px; }
+
+@keyframes wiggle { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.animate-wiggle { animation: wiggle 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-wiggle { animation: none; } }

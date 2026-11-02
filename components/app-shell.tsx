@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Sticker, Tape } from "@/components/diary/stickers";
 
 /** Bottom bar on phones (the stylist lives only in the floating hanger button, never in a menu). */
 const bottomNav = [
@@ -61,20 +62,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-dashed border-lace bg-background/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b-2 border-dashed border-lace bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link href="/" className="group flex items-center gap-1.5">
-            <span className="font-serif text-[26px] font-semibold italic tracking-tight text-foreground">Closet</span>
-            <Bow className="h-3.5 w-6 text-primary transition-transform group-hover:rotate-6" />
+          <Link href="/" className="group relative flex items-center gap-1 pl-1">
+            {/* tape sits BEHIND the wordmark */}
+            <Tape seed={0} className="!z-0 -left-1 top-3 h-3.5 w-24 -rotate-3 opacity-80" />
+            <span className="relative z-10 font-serif text-[27px] font-bold leading-none text-foreground sm:text-[30px]">Wardrobe Diaries</span>
+            <Sticker name="bow" size={26} tilt={12} className="relative -mt-3 transition-transform group-hover:rotate-12" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            {[bottomNav[0], ...menuNav.filter((n) => n.href !== "/settings")].map((n) => (
+            {[bottomNav[0], ...menuNav.filter((n) => !["/settings", "/upload", "/style"].includes(n.href))].map((n) => (
               <Link
                 key={n.href + n.label}
                 href={n.href}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground",
-                  isActive(n.href) && "bg-secondary text-accent-foreground"
+                  "rounded-full px-2.5 py-1 font-serif text-[19px] font-bold text-muted-foreground transition-colors hover:text-foreground",
+                  isActive(n.href) && "marker text-foreground"
                 )}
               >
                 {n.label}
@@ -106,32 +109,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         aria-label="Ask your stylist"
         title="Ask your stylist"
         className={cn(
-          "group fixed bottom-24 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(200,16,46,0.35)] ring-4 ring-background transition-transform hover:scale-105 md:bottom-6 md:right-6",
+          "group fixed bottom-24 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(226,84,111,0.35)] ring-[3px] ring-white transition-transform hover:scale-105 hover:rotate-6 md:bottom-6 md:right-6",
           onStylist && "ring-secondary"
         )}
       >
         <HangerTee className="size-7 animate-sway" />
-        <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background group-hover:md:block">
-          Ask your stylist
+        <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded-full bg-white px-3 py-1 font-serif text-lg font-bold text-foreground shadow group-hover:md:block">
+          ask your stylist ♡
         </span>
       </Link>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-dashed border-lace bg-background/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-dashed border-lace bg-background/95 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 items-end px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5">
           {bottomNav.map((n) =>
             n.centre ? (
               <Link key={n.href} href={n.href} className="flex flex-col items-center" aria-label="Upload">
-                <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg ring-4 ring-background">
+                <span className="-mt-6 flex size-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg ring-[3px] ring-white">
                   <n.icon className="size-6" />
                 </span>
-                <span className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{n.label}</span>
+                <span className="mt-0.5 font-serif text-[15px] font-bold leading-none text-muted-foreground">{n.label}</span>
               </Link>
             ) : (
               <Link
                 key={n.href}
                 href={n.href}
-                className={cn("flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-muted-foreground", isActive(n.href) && "text-primary")}
+                className={cn("flex flex-col items-center gap-0 py-1 font-serif text-[15px] font-bold leading-none text-muted-foreground", isActive(n.href) && "text-primary")}
               >
                 <n.icon className="size-5" />
                 {n.label}

@@ -43,7 +43,7 @@ export function WishlistClient({ initial, wardrobe }: { initial: WishlistItem[];
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-semibold">Wishlist</h1>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my wishlist ♡</span></h1>
         <p className="mt-1 text-muted-foreground">
           {items.length ? `${toBuy} to buy${items.length - toBuy ? ` · ${items.length - toBuy} bought` : ""}` : "Buy suggestions you save land here."}
         </p>
@@ -64,7 +64,7 @@ export function WishlistClient({ initial, wardrobe }: { initial: WishlistItem[];
         {items.map((w) => {
           const colour = w.attributes?.primary_color as keyof typeof COLOR_SWATCH | undefined;
           return (
-            <div key={w.id} className={cn("flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm", w.bought && "opacity-70")}>
+            <div key={w.id} className={cn("flex flex-col gap-3 paper p-4", w.bought && "opacity-70")}>
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 size-8 shrink-0 rounded-lg border border-black/10" style={{ background: colour ? COLOR_SWATCH[colour] ?? "#f1ece6" : "#f1ece6" }} />
                 <div className="min-w-0 flex-1">
@@ -82,7 +82,7 @@ export function WishlistClient({ initial, wardrobe }: { initial: WishlistItem[];
               <PairsWith ids={w.pairs_with_item_ids} wardrobe={wardrobe} />
               {w.bought ? (
                 <div className="flex flex-col gap-2 rounded-xl bg-accent/60 p-3 text-sm">
-                  <span>Got it? Add a photo so Closet can style it with everything else.</span>
+                  <span>Got it? Add a photo so your diary can style it with everything else.</span>
                   <div className="flex gap-2">
                     <Button asChild size="sm">
                       <Link href="/upload">

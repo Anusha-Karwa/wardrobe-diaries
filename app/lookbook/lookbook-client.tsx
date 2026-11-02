@@ -10,7 +10,7 @@ export function LookbookClient({ initial }: { initial: (BoardOutfit & { id: stri
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-semibold">Lookbook</h1>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my lookbook</span></h1>
         <p className="mt-1 text-muted-foreground">{outfits.length ? `${outfits.length} saved outfit${outfits.length === 1 ? "" : "s"}` : "Outfits you save land here."}</p>
       </div>
       {outfits.length ? (

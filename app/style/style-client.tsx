@@ -79,8 +79,8 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
   if (!wardrobe.length) {
     return (
       <div className="py-16 text-center">
-        <h1 className="text-3xl font-semibold">Style me</h1>
-        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Add some clothes first, then Closet can build outfits from them.</p>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">style me</span></h1>
+        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Add some clothes first, then your diary can build outfits from them.</p>
         <Button asChild className="mt-6">
           <Link href="/upload">
             <Plus /> Add clothes
@@ -96,7 +96,7 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Style me</h1>
+        <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">style me</span></h1>
         <p className="mt-1 text-muted-foreground">Outfits built only from what you own.</p>
       </div>
 
@@ -114,7 +114,7 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
       </div>
 
       {mode === "occasion" ? (
-        <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+        <div className="space-y-4 paper p-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Occasion</span>
@@ -158,7 +158,7 @@ export function StyleClient({ wardrobe }: { wardrobe: Item[] }) {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+        <div className="space-y-3 paper p-4">
           {anchor ? (
             <div className="flex items-center gap-3">
               <ItemImage item={anchor} className="size-20 shrink-0" sizes="80px" />

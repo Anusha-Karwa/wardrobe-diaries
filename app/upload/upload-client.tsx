@@ -158,8 +158,8 @@ export function UploadClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Add to your closet</h1>
-        <p className="mt-1 text-muted-foreground">Flat lays, hanger shots or mirror selfies. Closet finds every item, cuts it out and tags it.</p>
+        <h1 className="font-serif text-5xl font-bold"><span className="marker">add to my diary</span></h1>
+        <p className="mt-1 text-muted-foreground">Flat lays, hanger shots or mirror selfies. I find every piece, cut it out and write it into your diary.</p>
       </div>
 
       {/* Stage 0: picker / drop zone */}

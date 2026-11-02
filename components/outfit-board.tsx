@@ -28,7 +28,10 @@ const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 export function BoardCanvas({ outfit, className }: { outfit: BoardOutfit; className?: string }) {
   const placements = layoutBoard(outfit.items);
   return (
-    <div className={cn("relative w-full overflow-hidden rounded-xl", className)} style={{ aspectRatio: `${BOARD_W}/${BOARD_H}`, background: BOARD_BG }}>
+    <div
+      className={cn("relative w-full overflow-hidden rounded-xl", className)}
+      style={{ aspectRatio: `${BOARD_W}/${BOARD_H}`, background: BOARD_BG, backgroundImage: "radial-gradient(var(--dot) 1.2px, transparent 1.4px)", backgroundSize: "18px 18px" }}
+    >
       {placements.map(({ item, slot }) => (
         <div
           key={item.id}
@@ -47,12 +50,12 @@ export function BoardCanvas({ outfit, className }: { outfit: BoardOutfit; classN
       <div className="absolute inset-x-[4.4%] border-t border-border" style={{ top: pct(CONTENT_H + 10, BOARD_H) }} />
       <div className="absolute inset-x-[4.4%] flex items-start justify-between gap-2" style={{ top: pct(CONTENT_H + 24, BOARD_H) }}>
         <div className="min-w-0">
-          <p className="truncate font-serif text-[clamp(13px,3.6cqw,22px)] font-semibold leading-tight">{outfit.name}</p>
+          <p className="truncate font-serif text-[clamp(16px,4.6cqw,28px)] font-bold leading-tight">{outfit.name}</p>
           <p className="truncate text-[clamp(9px,2cqw,12px)] text-primary">
             {[outfit.style_tag && labelize(outfit.style_tag), outfit.color_story].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <span className="font-serif text-[clamp(10px,2.4cqw,14px)] text-muted-foreground">closet</span>
+        <span className="font-serif text-[clamp(12px,2.8cqw,18px)] font-bold text-primary">wardrobe diaries ♡</span>
       </div>
     </div>
   );
@@ -170,7 +173,7 @@ export function OutfitCard({
   const spin = (k: typeof busy) => (busy === k ? <Loader2 className="animate-spin" /> : null);
 
   return (
-    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-3 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
+    <div className="flex flex-col gap-3 paper p-3">
       <div className="@container">
         {boardUrl && compact ? (
           <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: `${BOARD_W}/${BOARD_H}` }}>

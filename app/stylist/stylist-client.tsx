@@ -169,7 +169,7 @@ export function StylistClient({ wardrobe }: { wardrobe: Item[] }) {
     <div className="flex min-h-[calc(100dvh-12rem)] flex-col">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-semibold">Stylist</h1>
+          <h1 className="font-serif text-5xl font-bold leading-none"><span className="marker">my stylist</span></h1>
           <p className="text-sm text-muted-foreground">Knows your {wardrobe.length} pieces and this week&apos;s trends.</p>
         </div>
         <div className="flex gap-1.5">

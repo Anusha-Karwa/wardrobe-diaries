@@ -7,6 +7,7 @@ import { Check, Heart, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Sticker, Tape, tiltFor } from "@/components/diary/stickers";
 import { ShopButtons } from "@/components/buy-card";
 import { shopLinks } from "@/lib/shopping";
 import { CATEGORY_GROUPS, type GroupKey } from "@/lib/trend-groups";
@@ -43,7 +44,10 @@ function Tile({ t, onOpen, i }: { t: TrendWithMatch; onOpen: () => void; i: numb
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: Math.min(i, 5) * 0.06, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-dashed border-lace bg-tile">
+      <div className="polaroid relative !pb-2 transition-transform group-hover:!rotate-0" style={{ rotate: `${tiltFor(i)}deg` }}>
+      {i % 2 === 0 && <Tape seed={i + 1} className="-top-2.5 left-1/2 h-4 w-14 -translate-x-1/2 -rotate-2" />}
+      {(t.heat ?? 0) >= 5 && <span className="absolute -right-2 -top-2 z-10 rotate-12 rounded-full bg-primary px-2 py-0.5 font-serif text-base font-bold text-white shadow ring-2 ring-white">hot!</span>}
+      <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-tile">
         {t.image_url ? (
           <Image src={t.image_url} alt={t.title} fill unoptimized className="object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
@@ -55,7 +59,8 @@ function Tile({ t, onOpen, i }: { t: TrendWithMatch; onOpen: () => void; i: numb
           </span>
         )}
       </div>
-      <p className="mt-2 line-clamp-2 font-serif text-[15px] font-semibold italic leading-tight">{t.title}</p>
+      </div>
+      <p className="mt-2.5 line-clamp-2 font-serif text-xl font-bold leading-[1.05]">{t.title}</p>
       {t.why_now && <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">{t.why_now}</p>}
     </motion.button>
   );
@@ -161,8 +166,10 @@ export function TrendsClient({ current, wardrobe }: { current: TrendWithMatch[];
     <div className="space-y-8">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">This week</p>
-          <h1 className="font-serif text-4xl font-semibold italic leading-none">What&apos;s in</h1>
+          <p className="font-serif text-2xl font-bold text-muted-foreground">this week in fashion…</p>
+          <h1 className="flex items-center gap-2 font-serif text-5xl font-bold leading-none">
+            <span className="marker">What&apos;s in</span> <Sticker name="star" size={30} tilt={14} wiggle />
+          </h1>
           {updated && (
             <p className="mt-1 text-sm text-muted-foreground">
               Updated {updated.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Kolkata" })} · from celebrities, creators &amp; Pinterest
@@ -185,9 +192,9 @@ export function TrendsClient({ current, wardrobe }: { current: TrendWithMatch[];
 
       {groups.map((g) => (
         <section key={g.key} className="space-y-3">
-          <h2 className="font-serif text-2xl italic">{g.label}</h2>
+          <h2 className="font-serif text-3xl font-bold">{g.label.toLowerCase()}</h2>
           {/* 5 in a row on larger screens; a swipeable row on phones */}
-          <div className="-mx-4 grid snap-x auto-cols-[44%] grid-flow-col gap-3 overflow-x-auto px-4 pb-1 sm:auto-cols-[30%] md:mx-0 md:grid-flow-row md:grid-cols-5 md:overflow-visible md:px-0">
+          <div className="-mx-4 grid snap-x auto-cols-[44%] grid-flow-col gap-4 overflow-x-auto px-4 pb-2 pt-3 sm:auto-cols-[30%] md:mx-0 md:grid-flow-row md:grid-cols-5 md:overflow-visible md:px-0">
             {g.trends.map((t, i) => (
               <Tile key={t.id} t={t} i={i} onOpen={() => setOpen(t)} />
             ))}
