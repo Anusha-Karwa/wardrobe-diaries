@@ -33,7 +33,7 @@ async function checkPhoto(jpeg: Buffer, purpose: "upload" | "result") {
     Check,
     {
       contents: [
-        { inlineData: { mimeType: purpose === "upload" ? "image/jpeg" : "image/png", data: jpeg.toString("base64") } },
+        { inlineData: { mimeType: "image/jpeg", data: jpeg.toString("base64") } },
         `Safety check for a fashion try-on app (PG-13). Look at the photo and report:
 - person_count: number of people visible
 - appears_adult: does the person appear to be 18 or older?
@@ -111,7 +111,7 @@ Create ONE photorealistic full-length fashion photo of the SAME person from IMAG
 async function imagePart(url: string) {
   const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
   // Cutouts are transparent PNGs: put them on white so the model sees the garment clearly.
-  const jpeg = await sharp(buf).flatten({ background: "#ffffff" }).resize(768, 768, { fit: "inside" }).jpeg({ quality: 88 }).toBuffer();
+  const jpeg = await sharp(buf).flatten({ background: "#ffffff" }).resize(640, 640, { fit: "inside" }).jpeg({ quality: 86 }).toBuffer();
   return { inlineData: { mimeType: "image/jpeg", data: jpeg.toString("base64") } };
 }
 
@@ -119,7 +119,7 @@ export function tryOnKey(bodyUrl: string, itemIds: string[]) {
   return createHash("sha256").update(`${bodyUrl}|${[...itemIds].sort().join(",")}`).digest("hex").slice(0, 32);
 }
 
-export async function tryOn(itemIds: string[]) {
+export async function tryOn(itemIds: string[], opts: { force?: boolean } = {}) {
   const profile = await getProfile();
   if (!profile.body_photo_url) throw new TryOnError("Add your full-length photo first.");
   const ids = Array.from(new Set(itemIds)).slice(0, 6);
@@ -127,7 +127,7 @@ export async function tryOn(itemIds: string[]) {
 
   const key = tryOnKey(profile.body_photo_url, ids);
   const cached = await sql`select image_url from try_ons where key = ${key}`;
-  if (cached.length) return { image_url: cached[0].image_url as string, cached: true };
+  if (cached.length && !opts.force) return { image_url: cached[0].image_url as string, cached: true };
 
   const items = (await getItemsByIds(ids)).sort((a, b) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category));
   if (!items.length) throw new TryOnError("Those items no longer exist.");
@@ -140,17 +140,23 @@ export async function tryOn(itemIds: string[]) {
   });
   const data = res.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data)?.inlineData?.data;
   if (!data) throw new TryOnError("The try-on couldn't be generated for this combination. Try different pieces.");
-  const png = await sharp(Buffer.from(data, "base64")).png().toBuffer();
+  // JPEG is ~8x smaller than the PNG the model returns, so it loads much faster on a phone.
+  const jpg = await sharp(Buffer.from(data, "base64")).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
+  const small = await sharp(jpg).resize(640, 640, { fit: "inside" }).jpeg({ quality: 80 }).toBuffer();
 
-  // Second PG-13 gate on the result itself.
-  const check = await checkPhoto(png, "result");
+  // Second PG-13 gate on the result itself, run alongside the upload; a failing image is deleted, never returned.
+  const [check, url] = await Promise.all([
+    checkPhoto(small, "result"),
+    putBlob(`tryons/${key}-${randomUUID().slice(0, 8)}.jpg`, jpg, "image/jpeg"),
+  ]);
   if (check.clothing !== "regular_clothes" || check.explicit_or_suggestive) {
     console.warn("[try-on] result rejected by safety check:", check.reason);
+    await deleteBlobs([url]);
     throw new TryOnError("That combination couldn't be shown modestly. Try adding a top or a layer.");
   }
-
-  const url = await putBlob(`tryons/${key}-${randomUUID().slice(0, 8)}.png`, png, "image/png");
-  await sql`insert into try_ons (key, image_url, item_ids) values (${key}, ${url}, ${ids}::uuid[]) on conflict (key) do update set image_url = excluded.image_url`;
+  const old = cached[0]?.image_url as string | undefined;
+  await sql`insert into try_ons (key, image_url, item_ids) values (${key}, ${url}, ${ids}::uuid[]) on conflict (key) do update set image_url = excluded.image_url, created_at = now()`;
+  if (old && old !== url) await deleteBlobs([old]);
   return { image_url: url, cached: false };
 }
 

@@ -10,9 +10,9 @@ import type { Item, OnlineMatch } from "./types";
 import { dedupeMatches } from "./utils";
 
 /**
- * "Similar online": Google Lens visual matches (via SerpApi) for an item's crop.
- * We send the item's public crop URL; Lens returns product photos that look nearly identical,
- * with store, price and link. Results are cached on the item (free plan = 100 searches/month).
+ * "Similar online": Google Lens visual matches (via SerpApi) for an item's crop, from anywhere on the web
+ * (not only shops), in Lens's similarity order. Used to give the item a clean picture; store names are never
+ * shown on the user's own clothes. Results are cached on the item.
  */
 const VisualMatch = z
   .object({
@@ -27,10 +27,12 @@ const VisualMatch = z
   .passthrough();
 const LensResponse = z.object({ visual_matches: z.array(VisualMatch).optional(), error: z.string().optional() }).passthrough();
 
-/** Stores that are useful to a shopper in India rank higher. */
-const PREFERRED = /myntra|ajio|nykaa|amazon\.in|flipkart|tatacliq|h&m|hm\.com|zara|mango|uniqlo|westside|lifestyle|max ?fashion|snitch|bewakoof|fabindia|libas|biba|w for woman|puma|nike|adidas|bata|metro|mochi|lavie|caprese|accessorize|tanishq|caratlane|giva|meesho|shoppers ?stop|marks|levi/i;
-/** Results that are rarely products (social posts, videos, forums). */
-const NOT_SHOPS = /pinterest|instagram|facebook|youtube|tiktok|reddit|twitter|x\.com|quora|threads/i;
+/** Video results only give a video frame, not a usable photo of the item. */
+const NOT_PHOTOS = /youtube|tiktok|vimeo/i;
+/** Typical shop URL shapes (/products/…, /collections/…, /catalog/…, /dp/…, /p/…, /buy). */
+const SHOP_URL = /\/(products?|collections|catalog|dp|p|buy|item|shop)(\/|$)|zalando|nnnow|outlet/i;
+/** Shopping sites: used only to fill in when the open web has fewer than `limit` good matches. */
+const SHOPS = /myntra|ajio|nykaa|amazon|flipkart|tatacliq|meesho|snapdeal|shein|zara|h&m|hm\.com|mango|uniqlo|westside|lifestylestores|maxfashion|shoppersstop|ebay|etsy|aliexpress|alibaba|walmart|target\.com|asos|shopify|myshopify|store|shop\b/i;
 
 export const onlineMatchEnabled = () => !!process.env.SERPAPI_KEY;
 
@@ -41,6 +43,7 @@ export async function searchOnlineMatches(item: Item, limit = 4): Promise<Online
     engine: "google_lens",
     url: item.crop_url,
     country: "in",
+    // no shopping filter: images from anywhere on the web
     hl: "en",
     api_key: key,
   });
@@ -50,18 +53,16 @@ export async function searchOnlineMatches(item: Item, limit = 4): Promise<Online
 
   const seen = new Set<string>();
   const matches = (body.visual_matches ?? [])
-    .filter((m) => m.title && m.link && m.thumbnail && !NOT_SHOPS.test(`${m.source} ${m.link}`))
+    .filter((m) => m.title && m.link && m.thumbnail && !NOT_PHOTOS.test(`${m.source} ${m.link}`))
     // Lens often lists the same product twice.
     .filter((m) => {
       const k = m.link!.split("?")[0];
       return seen.has(k) ? false : (seen.add(k), true);
     })
-    .map((m, i) => ({
-      m,
-      // Lens order is visual similarity; nudge real shops (price / Indian stores) up a little.
-      score: i - (m.price?.value ? 3 : 0) - (PREFERRED.test(`${m.source} ${m.link}`) ? 4 : 0),
-    }))
-    .sort((a, b) => a.score - b.score)
+    // Open-web photos first (blogs, Pinterest, lookbooks), each group in Lens's own similarity order;
+    // shopping listings only fill the remaining spots.
+    .map((m, i) => ({ m, shop: !!m.price?.value || SHOPS.test(`${m.source} ${m.link}`) || SHOP_URL.test(m.link!), i }))
+    .sort((a, b) => Number(a.shop) - Number(b.shop) || a.i - b.i)
     .slice(0, limit)
     .map(({ m }) => ({
       title: m.title!.slice(0, 140),

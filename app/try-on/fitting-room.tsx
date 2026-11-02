@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -97,7 +97,10 @@ export function FittingRoom({
   const [body, setBody] = useState(initialBody);
   const [tab, setTab] = useState("all");
   const [renders, setRenders] = useState<Record<string, string>>({});
+  /** The last render shown, kept on screen while the next one is being made (no blank waiting screen). */
+  const [shown, setShown] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const inflight = useRef<{ key: string; ctrl: AbortController } | null>(null);
   const [msg, setMsg] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -106,6 +109,7 @@ export function FittingRoom({
 
   const lookKey = look.map((i) => i.id).sort().join(",");
   const render = renders[lookKey];
+  const onStage = render ?? shown;
 
   // Style & fit checks (computed from the pieces).
   const cats = look.map((i) => i.category);
@@ -141,22 +145,48 @@ export function FittingRoom({
     toast("Your photo and try-ons were deleted");
   }
 
-  async function tryItOn() {
-    if (!look.length) return toast("Pick at least one piece from your closet");
+  /** Dress the model in the current look. Called automatically whenever the look changes. */
+  async function tryItOn(force = false) {
+    if (!look.length || !body) return;
+    const key = lookKey;
+    inflight.current?.ctrl.abort(); // a newer look replaces an older request
+    const ctrl = new AbortController();
+    inflight.current = { key, ctrl };
     setBusy(true);
     const timer = setInterval(() => setMsg((m) => (m + 1) % LOADING.length), 2500);
     try {
-      const res = await fetch("/api/try-on", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item_ids: look.map((i) => i.id) }) });
+      const res = await fetch("/api/try-on", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_ids: look.map((i) => i.id), force }),
+        signal: ctrl.signal,
+      });
       const b = await res.json();
       if (!res.ok) throw new Error(b.error ?? "Try-on failed");
-      setRenders((r) => ({ ...r, [lookKey]: b.image_url }));
+      setRenders((r) => ({ ...r, [key]: b.image_url }));
+      if (inflight.current?.key === key) setShown(b.image_url);
     } catch (err) {
-      toast.error((err as Error).message, { duration: 7000 });
+      if ((err as Error).name !== "AbortError") toast.error((err as Error).message, { duration: 7000 });
     } finally {
       clearInterval(timer);
-      setBusy(false);
+      if (inflight.current?.key === key) {
+        inflight.current = null;
+        setBusy(false);
+      }
     }
   }
+
+  // Tap a piece → the model wears it. A short pause lets several quick taps become one render.
+  useEffect(() => {
+    if (!body || !look.length) return;
+    if (renders[lookKey]) {
+      setShown(renders[lookKey]);
+      return;
+    }
+    const t = setTimeout(() => tryItOn(), 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookKey, body]);
 
   async function downloadRender() {
     if (!render) return;
@@ -167,22 +197,18 @@ export function FittingRoom({
   }
 
   const tabItems = wardrobe.filter(TABS.find((t) => t.key === tab)!.match);
-  const shopFor = (i: Item) => (i.matched_product ? { label: i.matched_product.source, href: i.matched_product.link } : null);
 
   // ----- Stage (the podium) -----
   const stage = (
     <div className="relative mx-auto aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#efeeec] to-[#e4e2df]">
-      {render ? (
-        <Image src={render} alt="You wearing this look" fill sizes="(max-width: 768px) 100vw, 460px" className="object-contain" priority />
+      {onStage ? (
+        // Shown straight from storage (already a small JPEG), no extra image processing step.
+        <Image src={onStage} alt="You wearing this look" fill unoptimized className="object-contain" priority />
       ) : body ? (
         <>
-          <Image src={body} alt="Your photo" fill sizes="(max-width: 768px) 100vw, 460px" className={cn("object-contain transition", look.length && "opacity-40 blur-[1px]")} />
-          {look.length > 0 && !busy && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Button size="lg" onClick={tryItOn} className="shadow-lg">
-                <Sparkles /> Try it on
-              </Button>
-            </div>
+          <Image src={body} alt="Your photo" fill unoptimized className="object-contain" />
+          {!look.length && (
+            <p className="absolute inset-x-6 bottom-[13%] rounded-full bg-white/90 px-4 py-2 text-center text-sm shadow-sm">Tap any piece in your closet to wear it</p>
           )}
         </>
       ) : (
@@ -200,18 +226,20 @@ export function FittingRoom({
           </p>
         </div>
       )}
-      {/* podium */}
-      {!render && body && <div className="absolute inset-x-[18%] bottom-[3%] h-[7%] rounded-[50%] bg-white/90 shadow-[0_8px_20px_rgba(0,0,0,0.08)]" />}
+      {/* podium under the plain photo */}
+      {!onStage && body && <div className="absolute inset-x-[18%] bottom-[3%] h-[7%] rounded-[50%] bg-white/90 shadow-[0_8px_20px_rgba(0,0,0,0.08)]" />}
+      {/* Non-blocking progress: the current look stays visible while the next one is made. */}
       {busy && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 backdrop-blur-[2px]">
-          <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm font-medium">{LOADING[msg]}</p>
-          <p className="text-xs text-muted-foreground">about 15–25 seconds</p>
+        <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+          <Loader2 className="size-3.5 animate-spin text-primary" /> {LOADING[msg]}
         </div>
       )}
-      {render && (
+      {onStage && (
         <div className="absolute right-3 top-3 flex gap-1.5">
-          <button onClick={downloadRender} aria-label="Download" className="rounded-full bg-white/90 p-2 shadow-sm hover:bg-white">
+          <button onClick={() => tryItOn(true)} disabled={busy} aria-label="Re-generate this look" title="Re-generate" className="rounded-full bg-white/90 p-2 shadow-sm hover:bg-white disabled:opacity-50">
+            <RotateCcw className="size-4" />
+          </button>
+          <button onClick={downloadRender} disabled={!render} aria-label="Download" className="rounded-full bg-white/90 p-2 shadow-sm hover:bg-white disabled:opacity-50">
             <Download className="size-4" />
           </button>
         </div>
@@ -284,7 +312,7 @@ export function FittingRoom({
                   </span>
                 )}
               </div>
-              <p className="mt-1 truncate text-[11px] font-semibold uppercase">{i.matched_product?.source ?? labelize(i.primary_color)}</p>
+              <p className="mt-1 truncate text-[11px] font-semibold uppercase">{labelize(i.primary_color)}</p>
               <p className="truncate text-[11px] text-muted-foreground">{labelize(i.subcategory)}</p>
             </button>
           );
@@ -307,9 +335,9 @@ export function FittingRoom({
                     <Image src={i.cutout_url ?? i.crop_url} alt="" fill sizes="56px" className="object-contain p-1" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-semibold uppercase tracking-wide">{i.matched_product?.source ?? i.brand_visible ?? "Your closet"}</p>
+                    <p className="truncate text-[11px] font-semibold uppercase tracking-wide">{i.brand_visible ?? "Your closet"}</p>
                     <p className="truncate text-sm">{labelize(i.primary_color)} {labelize(i.subcategory).toLowerCase()}</p>
-                    <p className="text-xs text-muted-foreground">{i.matched_product?.price ?? "Owned"}</p>
+                    <p className="text-xs text-muted-foreground">Owned</p>
                   </div>
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </Link>
@@ -336,14 +364,9 @@ export function FittingRoom({
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Button onClick={tryItOn} disabled={busy || !body || !look.length} className="bg-foreground text-background hover:bg-foreground/90">
-            {busy ? <Loader2 className="animate-spin" /> : render ? <RotateCcw /> : <Sparkles />} {render ? "Try again" : "Try it on"}
-          </Button>
-          <Button variant="outline" onClick={() => setShopOpen(true)} disabled={!look.length}>
-            <ShoppingBag /> Shop the look
-          </Button>
-        </div>
+        <Button onClick={() => setShopOpen(true)} disabled={!look.length} className="w-full bg-foreground text-background hover:bg-foreground/90">
+          <ShoppingBag /> Shop the look
+        </Button>
         {!body && <p className="text-xs text-muted-foreground">Add your photo first to see yourself in it.</p>}
       </div>
 
@@ -416,7 +439,6 @@ export function FittingRoom({
           </div>
           <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
             {look.map((i) => {
-              const direct = shopFor(i);
               return (
                 <div key={i.id} className="space-y-2">
                   <div className="flex items-center gap-3">
@@ -425,11 +447,6 @@ export function FittingRoom({
                     </div>
                     <p className="text-sm">{i.description}</p>
                   </div>
-                  {direct && (
-                    <a href={direct.href} target="_blank" rel="noopener noreferrer" className="block rounded-lg border bg-white px-3 py-2 text-xs font-medium hover:bg-accent">
-                      Exact match on {direct.label} ↗
-                    </a>
-                  )}
                   <ShopButtons links={shopLinks(buildSearchQuery(i.description ?? `${i.primary_color} ${i.subcategory}`))} />
                 </div>
               );

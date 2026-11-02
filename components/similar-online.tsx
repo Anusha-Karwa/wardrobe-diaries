@@ -70,7 +70,7 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
           /* keep the photo with its background */
         }
       }
-      toast.success("Using the online match as this item's picture");
+      toast.success("Using the matching photo as this item's picture");
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -86,7 +86,7 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
     <div className="space-y-2 rounded-xl border border-dashed p-2.5">
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <Globe className="size-3" /> Similar online
+          <Globe className="size-3" /> Matching photos
         </span>
         {matches && state !== "searching" && (
           <button type="button" onClick={() => search(true)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground" title="Search again (uses one Google Lens search)">
@@ -97,18 +97,18 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
 
       {state === "searching" && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin text-primary" /> Looking for near-identical products with Google Lens…
+          <Loader2 className="size-3.5 animate-spin text-primary" /> Searching the web for photos of this exact item…
         </p>
       )}
       {state === "error" && <p className="text-xs text-destructive">{error}</p>}
 
       {!matches && state === "idle" && (
         <button type="button" onClick={() => search()} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
-          <Search className="size-3.5" /> Find online match
+          <Search className="size-3.5" /> Find a matching photo
         </button>
       )}
 
-      {matches && matches.length === 0 && state === "idle" && <p className="text-xs text-muted-foreground">No close product matches found for this one.</p>}
+      {matches && matches.length === 0 && state === "idle" && <p className="text-xs text-muted-foreground">No close matches found on the web for this one.</p>}
 
       {matches && matches.length > 0 && (
         <>
@@ -121,13 +121,11 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
                   type="button"
                   onClick={() => use(i)}
                   disabled={picking !== null}
-                  title={`Use as photo: ${m.title}`}
+                  title="Use as this item's photo"
                   className={cn("group relative flex flex-col overflow-hidden rounded-lg border bg-white text-left", isPicked && "ring-2 ring-primary")}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.thumbnail} alt={m.title} className="aspect-square w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
-                  <span className="truncate px-1 pt-0.5 text-[10px] font-medium">{m.source}</span>
-                  <span className="truncate px-1 pb-0.5 text-[10px] text-muted-foreground">{m.price ?? " "}</span>
+                  <img src={m.thumbnail} alt="" className="aspect-square w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
                   {picking === i && (
                     <span className="absolute inset-0 flex items-center justify-center bg-white/70">
                       <Loader2 className="size-4 animate-spin text-primary" />
@@ -149,7 +147,7 @@ export function SimilarOnline({ item, auto, onChange }: { item: Item; auto?: boo
 
       {item.matched_product && (
         <a href={item.matched_product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] text-primary hover:underline">
-          <ExternalLink className="size-3" /> Picture from {item.matched_product.source}: {item.matched_product.title}
+          <ExternalLink className="size-3" /> View image source
         </a>
       )}
     </div>

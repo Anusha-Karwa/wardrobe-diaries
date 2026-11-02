@@ -125,13 +125,14 @@ Hobby crons run once a day, accurate to within the hour. Functions use Fluid com
 
 Every card has **Real cutout** and **Use crop** buttons, so an AI product shot can always be swapped for your real photo. Cutout failures never block saving an item.
 
-**Similar online (Google Lens).** With `SERPAPI_KEY` set, each worn item's crop is sent to Google Lens (via SerpApi) after upload, and the card shows up to 4 near-identical products with store and price. Tapping one copies that product photo into Blob, removes its background in the browser, and badges the item **Online match** with a link to the product. Results are cached on the item, so each item uses at most one search (the free plan has 100/month); any other item has a **Find online match** button. Big Indian stores block scraping, so this uses Lens's own image results rather than fetching store pages.
+**Matching photos (Google Lens).** With `SERPAPI_KEY` set, each worn item's crop is sent to Google Lens (via SerpApi) after upload, and the card shows up to 4 near-identical photos from anywhere on the web (Lens's similarity order, video sites skipped). Tapping one copies that photo into Blob, isolates the item from it, and badges the item **Matched photo** with a "View image source" link. Store names and prices are never shown on your own clothes, only in recommendations and shopping. Results are cached on the item, so each item uses at most one search (the free plan has 100/month); any other item has a **Find online match** button. Big Indian stores block scraping, so this uses Lens's own image results rather than fetching store pages.
 
 ## Fitting room (virtual try-on)
 
 `/try-on` is laid out like a shopping-app "fitting room": your closet on the left, you on a podium in the middle (category icons on one side, the look's thumbnails on the other), and **Your look · Style & fit · Shop the look · Recommended for you** on the right. Tap pieces to mix and match (a dress replaces top + bottom, up to 2 accessories), or tap **Try it on me** on any outfit board.
 
 - **Your photo, once:** one full-length photo in everyday clothes. Before it's saved, Gemini checks it: one person, appears adult, full length, regular clothes, nothing revealing or suggestive. Otherwise it's rejected with a reason.
+- **Tap to wear:** tapping a piece re-dresses you automatically (several quick taps become one render); the current look stays on screen with a small progress chip while the next one is made (about 10–20 s, mostly image generation).
 - **Try it on:** Gemini's image model (`GEMINI_IMAGE_MODEL`) dresses that same person (same face, hair, skin tone and body shape, never reshaped) in exactly the chosen pieces, on a white podium in a grey studio.
 - **PG-13 by design:** the prompt requires full, modest coverage (adding a plain layer if a piece would leave skin uncovered), and every generated image is checked again before it's saved; anything that fails is discarded.
 - **Cached:** each (photo + set of pieces) is rendered once (about 15–45 s), then instant.
