@@ -221,23 +221,29 @@ function FilterPanel({
   toggle: (key: FilterKey, value: string) => void;
   setFormality: (r: [number, number]) => void;
 }) {
+  // Every group, Formality included, in alphabetical order.
+  type Group = { label: string; node: React.ReactNode };
+  const groups: Group[] = FILTER_GROUPS.map(({ key, label }): Group | null => {
+    const values = facets[key];
+    if (!values?.length) return null;
+    const selected = filters.selected[key] ?? [];
+    return {
+      label,
+      node: (
+        <FilterGroup key={key} label={label} count={selected.length} defaultOpen={OPEN_BY_DEFAULT.has(key) || selected.length > 0}>
+          <ChipList values={values} isColour={key === "primary_color"} selected={selected} onToggle={(v) => toggle(key, v)} />
+        </FilterGroup>
+      ),
+    };
+  }).filter((g): g is Group => !!g);
+  groups.push({ label: "Formality", node: <FormalityGroup key="formality" filters={filters} setFormality={setFormality} /> });
+  groups.sort((a, b) => a.label.localeCompare(b.label));
+
+  return <div className="divide-y divide-dashed divide-lace">{groups.map((g) => g.node)}</div>;
+}
+
+function FormalityGroup({ filters, setFormality }: { filters: Filters; setFormality: (r: [number, number]) => void }) {
   return (
-    <div className="divide-y">
-      {FILTER_GROUPS.map(({ key, label }) => {
-        const values = facets[key];
-        if (!values?.length) return null;
-        const selected = filters.selected[key] ?? [];
-        return (
-          <FilterGroup key={key} label={label} count={selected.length} defaultOpen={OPEN_BY_DEFAULT.has(key) || selected.length > 0}>
-            <ChipList
-              values={values}
-              isColour={key === "primary_color"}
-              selected={selected}
-              onToggle={(v) => toggle(key, v)}
-            />
-          </FilterGroup>
-        );
-      })}
       <FilterGroup label="Formality" count={filters.formality[0] > 1 || filters.formality[1] < 5 ? 1 : 0} defaultOpen={false}>
         <div className="flex items-center gap-2 text-sm">
           <NativeSelect
@@ -268,7 +274,6 @@ function FilterPanel({
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">1 = very casual, 5 = very formal</p>
       </FilterGroup>
-    </div>
   );
 }
 
@@ -299,7 +304,8 @@ function ChipList({
   isColour?: boolean;
 }) {
   const [all, setAll] = useState(false);
-  const shown = all ? values : values.slice(0, 10);
+  // More than 5 options: show 5, the rest behind "Show more".
+  const shown = all ? values : values.slice(0, 5);
   return (
     <div className="flex flex-wrap gap-1.5">
       {shown.map(({ value, count }) => {
@@ -327,9 +333,9 @@ function ChipList({
           </button>
         );
       })}
-      {values.length > 10 && (
-        <button type="button" onClick={() => setAll((a) => !a)} className="px-1 text-xs font-medium text-primary">
-          {all ? "Less" : `+${values.length - 10} more`}
+      {values.length > 5 && (
+        <button type="button" onClick={() => setAll((a) => !a)} className="px-1 text-xs font-bold text-primary">
+          {all ? "Show less" : `Show more (${values.length - 5})`}
         </button>
       )}
     </div>

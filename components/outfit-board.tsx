@@ -170,7 +170,7 @@ export function OutfitCard({
   const spin = (k: typeof busy) => (busy === k ? <Loader2 className="animate-spin" /> : null);
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-3 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
       <div className="@container">
         {boardUrl && compact ? (
           <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: `${BOARD_W}/${BOARD_H}` }}>
@@ -184,16 +184,11 @@ export function OutfitCard({
       {!compact && (
         <div className="space-y-1.5 px-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <h3 className="font-serif text-lg font-semibold leading-tight">{outfit.name}</h3>
+            <h3 className="font-serif text-lg font-semibold italic leading-tight">{outfit.name}</h3>
             {outfit.style_tag && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] text-accent-foreground">{labelize(outfit.style_tag)}</span>}
           </div>
           {outfit.color_story && <p className="text-xs font-medium text-primary">{outfit.color_story}</p>}
-          {outfit.reasoning && <p className="text-sm leading-snug text-foreground/80">{outfit.reasoning}</p>}
-          {outfit.missing_piece && (
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Would be even better with:</span> {outfit.missing_piece}
-            </p>
-          )}
+          {outfit.reasoning && <p className="line-clamp-2 text-sm leading-snug text-foreground/80">{outfit.reasoning}</p>}
         </div>
       )}
 

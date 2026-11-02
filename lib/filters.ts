@@ -24,7 +24,8 @@ export type FilterKey =
   | "metal_tone"
   | "size";
 
-export const FILTER_GROUPS: { key: FilterKey; label: string }[] = [
+/** Filter groups, in alphabetical order of their labels. */
+export const FILTER_GROUPS: { key: FilterKey; label: string }[] = ([
   { key: "category", label: "Category" },
   { key: "subcategory", label: "Type" },
   { key: "primary_color", label: "Colour" },
@@ -40,7 +41,7 @@ export const FILTER_GROUPS: { key: FilterKey; label: string }[] = [
   { key: "aesthetic", label: "Aesthetic" },
   { key: "metal_tone", label: "Metal tone" },
   { key: "size", label: "Size" },
-];
+] as { key: FilterKey; label: string }[]).sort((a, b) => a.label.localeCompare(b.label));
 
 /** Values that mean "doesn't apply" are hidden from the filter chips. */
 const HIDDEN_VALUES = new Set(["not_applicable", "unknown", "other", ""]);
@@ -141,7 +142,8 @@ export function facetCounts(items: Item[], f: Filters) {
     }
     // Keep selected values visible even if they now have 0 results.
     for (const v of f.selected[key] ?? []) if (!counts.has(v)) counts.set(v, 0);
-    out[key] = [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+    // Options in alphabetical order (as shown, e.g. "Light blue" under L).
+    out[key] = [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => labelize(a.value).localeCompare(labelize(b.value)));
   }
   // Subcategories only make sense within the chosen categories.
   const cats = f.selected.category ?? [];

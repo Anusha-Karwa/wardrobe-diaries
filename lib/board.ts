@@ -9,8 +9,8 @@ import { labelize } from "./utils";
  * with soft drop shadows and a serif footer. Fonts are bundled (assets/fonts) because Vercel has no system fonts.
  */
 const FONT_DIR = path.join(process.cwd(), "assets", "fonts");
-const SERIF = path.join(FONT_DIR, "PlayfairDisplay-SemiBold.ttf");
-const SANS = path.join(FONT_DIR, "Inter-Medium.ttf");
+const SERIF = path.join(FONT_DIR, "PlayfairDisplay-SemiBoldItalic.ttf");
+const SANS = path.join(FONT_DIR, "Nunito-SemiBold.ttf");
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -74,18 +74,18 @@ export async function renderBoard(o: { name: string | null; style_tag: string | 
 
   // Footer: thin rule, outfit name (serif), style tag + colour story (sans, rose), wordmark.
   layers.push({
-    input: Buffer.from(`<svg width="${BOARD_W}" height="2"><rect width="${BOARD_W - 96}" x="48" height="2" fill="#e7e1da"/></svg>`),
+    input: Buffer.from(`<svg width="${BOARD_W}" height="2"><rect width="${BOARD_W - 96}" x="48" height="2" fill="#f0c9cf"/></svg>`),
     left: 0,
     top: CONTENT_H + 10,
   });
-  const title = await text(`<span foreground="#1a1a1a">${esc(o.name || "Outfit")}</span>`, "Playfair Display SemiBold 50", SERIF, 760);
+  const title = await text(`<span foreground="#4a1820">${esc(o.name || "Outfit")}</span>`, "Playfair Display SemiBold Italic 50", SERIF, 760);
   layers.push({ input: title.data, left: 48, top: CONTENT_H + 34 });
   const sub = [o.style_tag ? labelize(o.style_tag) : "", o.color_story ?? ""].filter(Boolean).join("  ·  ");
   if (sub) {
-    const s = await text(`<span foreground="#b23a48">${esc(sub.slice(0, 90))}</span>`, "Inter Medium 24", SANS, 760);
+    const s = await text(`<span foreground="#b23a48">${esc(sub.slice(0, 90))}</span>`, "Nunito SemiBold 24", SANS, 760);
     layers.push({ input: s.data, left: 50, top: Math.min(BOARD_H - 40, CONTENT_H + 44 + title.info.height) });
   }
-  const mark = await text(`<span foreground="#9a918a">closet</span>`, "Playfair Display SemiBold 30", SERIF, 200);
+  const mark = await text(`<span foreground="#c8102e">closet</span>`, "Playfair Display SemiBold Italic 30", SERIF, 200);
   layers.push({ input: mark.data, left: BOARD_W - 48 - mark.info.width, top: CONTENT_H + 48 });
 
   return sharp({ create: { width: BOARD_W, height: BOARD_H, channels: 4, background: BOARD_BG } })

@@ -152,5 +152,7 @@ export interface Trend {
   price_band: string | null;
   search_query: string | null;
   sources: { title: string; url: string }[] | null;
+  image_url?: string | null;
+  image_page?: string | null;
   created_at: string;
 }

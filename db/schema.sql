@@ -81,6 +81,10 @@ create table if not exists trends (
   created_at timestamptz default now()
 );
 
+-- A real photo of the trend (from a web image search, copied into Blob) and the page it came from.
+alter table trends add column if not exists image_url text;
+alter table trends add column if not exists image_page text;
+
 -- Which category group a trend came from (so a daily refresh of 2–3 groups doesn't hide the others).
 alter table trends add column if not exists group_key text;
 

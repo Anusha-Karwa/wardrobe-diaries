@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ChevronDown, Crop, Loader2, Save, Trash2, Wand2 } from "lucide-react";
+import { Check, ChevronDown, Crop, Loader2, Save, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,32 @@ const EDITABLE_KEYS = [
   "neckline", "fit", "length", "rise", "fabric", "wash", "embellishment", "style", "metal_tone", "occasion",
   "season", "formality", "aesthetic", "brand_visible", "size", "description",
 ] as const;
+
+const QUICK_OCCASIONS = ["casual", "college", "work", "party", "date", "festive"] as const;
+
+const SKIP_VALUES = new Set(["not_applicable", "unknown", "other", "none", "regular"]);
+/** The details the AI worked out, as short readable chips ("Long sleeves", "Mandarin neck", "Cotton"). */
+function summaryChips(d: Item) {
+  const out: string[] = [];
+  const add = (v: string | null, suffix = "") => {
+    if (v && !SKIP_VALUES.has(v)) out.push(`${labelize(v)}${suffix}`);
+  };
+  add(d.sleeve_length, " sleeves");
+  add(d.neckline, " neck");
+  add(d.fit, " fit");
+  add(d.length, " length");
+  add(d.fabric);
+  add(d.pattern === "solid" ? null : d.pattern);
+  add(d.embellishment);
+  add(d.metal_tone);
+  if (d.style) out.push(labelize(d.style));
+  // "Embroidered" (pattern) and "Embroidery" (embellishment) are the same detail: keep one.
+  const seen = new Set<string>();
+  return out.filter((c) => {
+    const k = c.toLowerCase().replace(/(ed|ery|y|s)$/, "").slice(0, 7);
+    return seen.has(k) ? false : (seen.add(k), true);
+  }).slice(0, 7);
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -158,7 +184,7 @@ export function ReviewCard({
   const busy = !!cutoutStatus;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-3 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
       <div className="relative">
         <ItemImage item={view} tile="checker" sizes="(max-width: 768px) 100vw, 33vw" />
         <CutoutBadge method={item.cutout_method} className="absolute left-2 top-2" />
@@ -173,54 +199,82 @@ export function ReviewCard({
         )}
       </div>
 
-      <p className="text-sm leading-snug">{draft.description}</p>
-
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Category">
-          <Select value={draft.category} values={CATEGORIES} onChange={(v) => set("category", v)} />
-        </Field>
-        <Field label="Type">
-          <Select value={draft.subcategory} values={subs} onChange={(v) => set("subcategory", v)} />
-        </Field>
-        <Field label="Colour">
-          <div className="flex items-center gap-2">
-            <span
-              className="size-5 shrink-0 rounded-full border"
-              style={{ background: COLOR_SWATCH[draft.primary_color as keyof typeof COLOR_SWATCH] ?? draft.primary_color_hex ?? "#ccc" }}
-            />
-            <div className="flex-1">
-              <Select value={draft.primary_color} values={COLORS} onChange={(v) => set("primary_color", v)} />
-            </div>
-          </div>
-        </Field>
-        <Field label="Size">
-          <Input value={draft.size ?? ""} onChange={(e) => set("size", e.target.value || null)} placeholder="e.g. M, 28" className="h-9 text-sm" />
-        </Field>
-        {MAIN_FIELDS.map((f) => (
-          <Field key={f.key} label={f.label}>
-            <Select value={draft[f.key] as string | null} values={f.values} onChange={(v) => set(f.key, v as never)} />
-          </Field>
-        ))}
+      {/* What the AI saw: one sentence + the details it worked out, nothing to fill in */}
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Here&apos;s what I see</p>
+        <p className="text-sm leading-snug">{draft.description}</p>
+        <div className="flex flex-wrap gap-1">
+          {summaryChips(draft).map((c) => (
+            <span key={c} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
+              {c}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <button type="button" onClick={() => setMore((m) => !m)} className="flex items-center gap-1 self-start text-xs font-medium text-primary">
-        <ChevronDown className={cn("size-4 transition-transform", more && "rotate-180")} /> {more ? "Fewer details" : "More details"}
-      </button>
-
-      {more && (
+      {!more ? (
+        /* Only 4 quick questions, all pre-filled */
+        <div className="space-y-2.5 rounded-2xl bg-muted/60 p-2.5">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Is it a…">
+              <Select value={draft.subcategory} values={subs} onChange={(v) => set("subcategory", v)} />
+            </Field>
+            <Field label="Colour">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="size-4 shrink-0 rounded-full border"
+                  style={{ background: COLOR_SWATCH[draft.primary_color as keyof typeof COLOR_SWATCH] ?? draft.primary_color_hex ?? "#ccc" }}
+                />
+                <div className="min-w-0 flex-1">
+                  <Select value={draft.primary_color} values={COLORS} onChange={(v) => set("primary_color", v)} />
+                </div>
+              </div>
+            </Field>
+          </div>
+          <Field label="Your size (optional)">
+            <Input value={draft.size ?? ""} onChange={(e) => set("size", e.target.value || null)} placeholder="e.g. M, 28" className="h-9 text-sm" />
+          </Field>
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">When do you wear it?</span>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_OCCASIONS.map((v) => {
+                const on = draft.occasion.includes(v);
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => toggle("occasion", v)}
+                    className={cn("rounded-full border px-2.5 py-1 text-xs font-semibold", on ? "border-primary bg-primary text-primary-foreground" : "bg-white hover:bg-secondary")}
+                  >
+                    {labelize(v)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            {MORE_FIELDS.map((f) => (
+            <Field label="Category">
+              <Select value={draft.category} values={CATEGORIES} onChange={(v) => set("category", v)} />
+            </Field>
+            <Field label="Type">
+              <Select value={draft.subcategory} values={subs} onChange={(v) => set("subcategory", v)} />
+            </Field>
+            <Field label="Colour">
+              <Select value={draft.primary_color} values={COLORS} onChange={(v) => set("primary_color", v)} />
+            </Field>
+            <Field label="Size">
+              <Input value={draft.size ?? ""} onChange={(e) => set("size", e.target.value || null)} placeholder="e.g. M, 28" className="h-9 text-sm" />
+            </Field>
+            {[...MAIN_FIELDS, ...MORE_FIELDS].map((f) => (
               <Field key={f.key} label={f.label}>
                 <Select value={draft[f.key] as string | null} values={f.values} onChange={(v) => set(f.key, v as never)} />
               </Field>
             ))}
             <Field label="Formality">
-              <Select
-                value={String(draft.formality ?? 2)}
-                values={["1", "2", "3", "4", "5"]}
-                onChange={(v) => set("formality", Number(v))}
-              />
+              <Select value={String(draft.formality ?? 2)} values={["1", "2", "3", "4", "5"]} onChange={(v) => set("formality", Number(v))} />
             </Field>
             <Field label="Brand">
               <Input value={draft.brand_visible ?? ""} onChange={(e) => set("brand_visible", e.target.value || null)} className="h-9 text-sm" />
@@ -237,10 +291,7 @@ export function ReviewCard({
                       key={v}
                       type="button"
                       onClick={() => toggle(f.key, v)}
-                      className={cn(
-                        "rounded-full border px-2.5 py-1 text-xs",
-                        on ? "border-primary bg-primary text-primary-foreground" : "bg-white hover:bg-accent"
-                      )}
+                      className={cn("rounded-full border px-2.5 py-1 text-xs", on ? "border-primary bg-primary text-primary-foreground" : "bg-white hover:bg-accent")}
                     >
                       {labelize(v)}
                     </button>
@@ -252,23 +303,31 @@ export function ReviewCard({
           <Field label="Description">
             <Textarea value={draft.description ?? ""} onChange={(e) => set("description", e.target.value)} className="min-h-16 text-sm" />
           </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="outline" onClick={() => onRedoCutout(item)} disabled={busy}>
+              <Wand2 /> {item.cutout_method === "browser_bg_removal" ? "Redo cutout" : "Real cutout"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onUseCrop(item)} disabled={busy || item.cutout_method === "crop_only"}>
+              <Crop /> Use my photo
+            </Button>
+          </div>
+          <SimilarOnline item={{ ...draft, ...item }} onChange={onChange} />
         </div>
       )}
 
-      <SimilarOnline item={{ ...draft, ...item }} auto={autoFindOnline} onChange={onChange} />
+      {/* Worn items (mirror selfies) look for a clean matching photo straight away */}
+      {!more && autoFindOnline && <SimilarOnline item={{ ...draft, ...item }} auto onChange={onChange} />}
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <button type="button" onClick={() => setMore((m) => !m)} className="flex items-center gap-1 self-start text-xs font-bold text-primary">
+        <ChevronDown className={cn("size-4 transition-transform", more && "rotate-180")} /> {more ? "Fewer details" : "Edit all details"}
+      </button>
+
+      <div className="grid grid-cols-2 gap-2">
         <Button size="sm" onClick={save} disabled={!dirty || saving}>
-          {saving ? <Loader2 className="animate-spin" /> : <Save />} {dirty ? "Save" : "Saved"}
+          {saving ? <Loader2 className="animate-spin" /> : dirty ? <Save /> : <Check />} {dirty ? "Save" : "Saved"}
         </Button>
         <Button size="sm" variant="outline" onClick={remove} className="text-destructive">
           <Trash2 /> Delete
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => onRedoCutout(item)} disabled={busy}>
-          <Wand2 /> {item.cutout_method === "browser_bg_removal" ? "Redo cutout" : "Real cutout"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => onUseCrop(item)} disabled={busy || item.cutout_method === "crop_only"}>
-          <Crop /> Use crop
         </Button>
       </div>
     </div>

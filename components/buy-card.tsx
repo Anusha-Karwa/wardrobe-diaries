@@ -90,7 +90,7 @@ export function BuyCard({ card, wardrobe, saved: savedInitially = false }: { car
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-dashed border-lace bg-card p-4 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
       <div className="flex items-start gap-3">
         <span
           className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-black/10"
@@ -111,7 +111,7 @@ export function BuyCard({ card, wardrobe, saved: savedInitially = false }: { car
         </div>
       </div>
 
-      {card.why && <p className="text-sm leading-snug text-foreground/80">{card.why}</p>}
+      {card.why && <p className="line-clamp-2 text-sm leading-snug text-foreground/80">{card.why}</p>}
       {card.trend && card.trend.title.toLowerCase() !== card.title.toLowerCase() && (
         <p className="text-xs text-trend-foreground">🔥 Part of the “{card.trend.title}” trend right now.</p>
       )}
@@ -119,17 +119,7 @@ export function BuyCard({ card, wardrobe, saved: savedInitially = false }: { car
 
       <ShopButtons links={card.links} />
 
-      {card.trend?.sources?.length ? (
-        <p className="text-[11px] text-muted-foreground">
-          Sources:{" "}
-          {card.trend.sources.map((s, i) => (
-            <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
-              {s.title}
-              {i < card.trend!.sources.length - 1 ? ", " : ""}
-            </a>
-          ))}
-        </p>
-      ) : null}
+
 
       <Button size="sm" variant={saved ? "secondary" : "outline"} onClick={save} disabled={busy || saved}>
         {busy ? <Loader2 className="animate-spin" /> : <Heart className={cn(saved && "fill-primary text-primary")} />}

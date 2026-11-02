@@ -7,6 +7,7 @@ import { getProfile, listItems } from "./queries";
 import { sql } from "./db";
 import { compactWardrobe } from "./outfits";
 import { buildSearchQuery } from "./shopping";
+import { ensureTrendImages } from "./trend-images";
 import {
   AESTHETICS,
   CATEGORIES,
@@ -261,7 +262,8 @@ export async function structureTrends(
 - "heat": 1–5, how strong the trend is right now.
 - "price_band": a short Indian price range like "₹800–2,500".
 - "search_query": what a shopper would type on Myntra, lowercase, e.g. "white halter neck lace top".
-- Keep summary, why_now and how_to_style to 1–2 sentences each.
+- "why_now": at most 12 words, naming who is wearing it if known (e.g. "Seen on Alia Bhatt and every Mumbai airport look this week").
+- Keep summary and how_to_style to one sentence each.
 
 RESEARCH:
 ${text}`,
@@ -334,6 +336,9 @@ export async function refreshGroup(groupKey: GroupKey, opts: { batchId?: string;
   }
   const batchId = opts.batchId ?? randomUUID();
   const ids = await saveTrends(batchId, opts.period ?? "daily", groupKey, structured);
+  // A real photo for each new trend (reused when the same trend was seen before).
+  const saved = await sql`select id, title, category, search_query, image_url from trends where id = any(${ids}::uuid[])`;
+  await ensureTrendImages(saved as { id: string; title: string; category: string | null; search_query: string | null; image_url: string | null }[]);
   const nSources = sources.filter(Boolean).length;
   console.log(`[trends] ${groupKey}: ${ids.length} trends, ${nSources} sources, ${Date.now() - started}ms`);
   return { groupKey, batchId, count: ids.length, sources: nSources };

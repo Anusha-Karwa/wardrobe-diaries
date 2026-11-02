@@ -6,7 +6,7 @@ import { generateJson } from "./gemini";
 import { generateOutfits, type GeneratedOutfit } from "./outfits";
 import { getItemsByIds, getOutfit, getProfile, insertOutfit, listItems, setOutfitBoard } from "./queries";
 import { toBuyCard } from "./shopping";
-import { CATEGORY_GROUPS, getCurrentTrends, matchCurrentTrends, refreshAll, refreshGroup, type GroupKey, type TrendWithMatch } from "./trends";
+import { CATEGORY_GROUPS, getCurrentTrends, matchCurrentTrends, refreshAll, type GroupKey, type TrendWithMatch } from "./trends";
 import type { BuyCard, Item, Outfit } from "./types";
 
 /**
@@ -185,12 +185,10 @@ Warm, sharp, specific. Return JSON {"headline","intro"}.`,
 // ---------------------------------------------------------------------------
 export async function runDailyCron(date = todayIST()) {
   const started = Date.now();
-  const groups = groupsForDay(date);
-  const results = await Promise.allSettled(groups.map((g) => refreshGroup(g, { period: "daily" })));
-  const refreshed = results.map((r, i) => `${groups[i]}:${r.status === "fulfilled" ? r.value.count : "failed"}`);
+  // Trends refresh weekly (Monday); every day we only re-match them to the wardrobe and make today's drop.
   await matchCurrentTrends().catch((e) => console.warn("[cron] match failed", e.message));
   const drop = await createDailyDrop(date);
-  return { refreshed, drop: drop?.for_date, outfit: !!drop?.outfit_id, ms: Date.now() - started };
+  return { drop: drop?.for_date, outfit: !!drop?.outfit_id, ms: Date.now() - started };
 }
 
 export async function runWeeklyCron(date = todayIST()) {

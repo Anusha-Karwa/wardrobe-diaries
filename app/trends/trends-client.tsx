@@ -1,45 +1,18 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, Heart, Loader2, RefreshCw, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Check, Heart, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ShopButtons } from "@/components/buy-card";
 import { shopLinks } from "@/lib/shopping";
 import { CATEGORY_GROUPS, type GroupKey } from "@/lib/trend-groups";
 import type { BuyCard, Item } from "@/lib/types";
 import type { TrendWithMatch } from "@/lib/trends";
 import { cn, labelize } from "@/lib/utils";
-
-type View = "now" | "past";
-type Show = "all" | "owned" | "missing";
-type GroupStatus = "waiting" | "working" | "done" | "failed";
-
-const LOADING = [
-  "Checking what's trending on Pinterest…",
-  "Reading Vogue India and Elle…",
-  "Scanning Myntra and Nykaa “new in”…",
-  "Looking at street style…",
-  "Matching trends to your closet…",
-];
-
-function Thumbs({ ids, wardrobe, label }: { ids: string[]; wardrobe: Item[]; label: string }) {
-  const items = ids.map((id) => wardrobe.find((i) => i.id === id)).filter((i): i is Item => !!i);
-  if (!items.length) return null;
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
-      <div className="flex gap-1.5 overflow-x-auto">
-        {items.slice(0, 5).map((it) => (
-          <div key={it.id} className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-tile" title={it.description ?? ""}>
-            <Image src={it.cutout_url ?? it.crop_url} alt={it.description ?? ""} fill sizes="40px" className="object-contain p-0.5" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function toBuyCard(t: TrendWithMatch): BuyCard {
   const attrs = Object.fromEntries(Object.entries(t.match_attributes ?? {}).map(([k, v]) => [k, v[0]]));
@@ -57,10 +30,42 @@ function toBuyCard(t: TrendWithMatch): BuyCard {
   };
 }
 
-function TrendCard({ t, wardrobe }: { t: TrendWithMatch; wardrobe: Item[] }) {
+function Tile({ t, onOpen, i }: { t: TrendWithMatch; onOpen: () => void; i: number }) {
+  const reduce = useReducedMotion();
+  const owned = t.status === "owned";
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpen}
+      className="group w-full snap-start text-left"
+      // Animates in on load (never left invisible waiting to be scrolled to).
+      initial={reduce ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: Math.min(i, 5) * 0.06, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-dashed border-lace bg-tile">
+        {t.image_url ? (
+          <Image src={t.image_url} alt={t.title} fill unoptimized className="object-cover transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <span className="flex size-full items-center justify-center text-4xl">🎀</span>
+        )}
+        {owned && (
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-bold text-emerald-700 shadow-sm">
+            <Check className="size-3" /> You own this
+          </span>
+        )}
+      </div>
+      <p className="mt-2 line-clamp-2 font-serif text-[15px] font-semibold italic leading-tight">{t.title}</p>
+      {t.why_now && <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">{t.why_now}</p>}
+    </motion.button>
+  );
+}
+
+function Detail({ t, wardrobe }: { t: TrendWithMatch; wardrobe: Item[] }) {
   const [saved, setSaved] = useState(false);
   const owned = t.status === "owned";
-  const q = t.search_query || t.title;
+  const ids = owned ? t.owned_item_ids : t.pairs_with_item_ids;
+  const pieces = ids.map((id) => wardrobe.find((i) => i.id === id)).filter((i): i is Item => !!i).slice(0, 5);
 
   async function save() {
     const res = await fetch("/api/wishlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(toBuyCard(t)) });
@@ -70,225 +75,141 @@ function TrendCard({ t, wardrobe }: { t: TrendWithMatch; wardrobe: Item[] }) {
   }
 
   return (
-    <article className="flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium text-muted-foreground">
-            <span className="text-trend-foreground">{"🔥".repeat(Math.max(1, Math.min(5, t.heat ?? 3)))}</span> · {labelize(t.category)}
-          </p>
-          <h3 className="font-serif text-lg font-semibold leading-tight">{t.title}</h3>
+    <div className="flex-1 space-y-4 overflow-y-auto px-5 pb-6">
+      {t.image_url && (
+        <div className="relative mx-auto aspect-[4/5] w-full max-w-xs overflow-hidden rounded-3xl">
+          <Image src={t.image_url} alt={t.title} fill unoptimized className="object-cover" />
         </div>
-        {t.status && (
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              owned ? "bg-emerald-100 text-emerald-800" : "bg-accent text-accent-foreground"
-            )}
-          >
-            {owned ? <Check className="size-3" /> : <X className="size-3" />} {owned ? "Owned" : "Missing"}
-          </span>
-        )}
-      </div>
-
-      {t.summary && <p className="text-sm leading-snug">{t.summary}</p>}
-      {t.why_now && (
-        <p className="text-xs leading-snug text-foreground/75">
-          <span className="font-semibold text-foreground">Why now: </span>
-          {t.why_now}
-        </p>
       )}
+      {t.why_now && <p className="text-sm">{t.why_now}</p>}
       {t.how_to_style && (
-        <p className="text-xs leading-snug text-foreground/75">
-          <span className="font-semibold text-foreground">How to style: </span>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-bold text-foreground">Wear it: </span>
           {t.how_to_style}
         </p>
       )}
-
-      {owned ? (
-        <Thumbs ids={t.owned_item_ids} wardrobe={wardrobe} label="In your closet" />
-      ) : (
-        <Thumbs ids={t.pairs_with_item_ids} wardrobe={wardrobe} label="Pairs with your" />
+      {pieces.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">{owned ? "Already in your closet" : "Goes with your"}</p>
+          <div className="flex gap-2">
+            {pieces.map((p) => (
+              <div key={p.id} className="relative size-14 overflow-hidden rounded-2xl bg-tile">
+                <Image src={p.cutout_url ?? p.crop_url} alt={p.description ?? ""} fill sizes="56px" className="object-contain p-1" />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
-      {t.note && <p className={cn("rounded-xl px-3 py-2 text-sm", owned ? "bg-emerald-50" : "bg-accent/50")}>{t.note}</p>}
-
       {!owned && (
-        <>
-          {t.price_band && <p className="text-xs text-muted-foreground">Typical price: {t.price_band}</p>}
-          <ShopButtons links={shopLinks(q)} />
-          <Button size="sm" variant={saved ? "secondary" : "outline"} onClick={save} disabled={saved}>
+        <div className="space-y-2">
+          {t.price_band && <p className="text-xs text-muted-foreground">Usually {t.price_band}</p>}
+          <ShopButtons links={shopLinks(t.search_query || t.title)} />
+          <Button size="sm" variant={saved ? "secondary" : "outline"} onClick={save} disabled={saved} className="w-full">
             <Heart className={cn(saved && "fill-primary text-primary")} /> {saved ? "In your wishlist" : "Add to wishlist"}
           </Button>
-        </>
+        </div>
       )}
-
-      {t.sources?.length ? (
+      {(t.sources?.length || t.image_page) && (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Sources:{" "}
-          {t.sources.map((s, i) => (
-            <span key={s.url}>
+          Seen on:{" "}
+          {[...(t.sources ?? []).slice(0, 3), ...(t.image_page ? [{ title: "photo source", url: t.image_page }] : [])].map((s, i, arr) => (
+            <span key={s.url + i}>
               <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
                 {s.title}
               </a>
-              {i < t.sources!.length - 1 ? " · " : ""}
+              {i < arr.length - 1 ? " · " : ""}
             </span>
           ))}
         </p>
-      ) : null}
-    </article>
+      )}
+    </div>
   );
 }
 
-export function TrendsClient({ current, past, wardrobe }: { current: TrendWithMatch[]; past: TrendWithMatch[]; wardrobe: Item[] }) {
+export function TrendsClient({ current, wardrobe }: { current: TrendWithMatch[]; past?: TrendWithMatch[]; wardrobe: Item[] }) {
   const router = useRouter();
-  const [view, setView] = useState<View>("now");
-  const [show, setShow] = useState<Show>("all");
-  const [status, setStatus] = useState<Record<string, GroupStatus> | null>(null);
-  const [step, setStep] = useState(0);
-  const refreshing = status !== null;
+  const [open, setOpen] = useState<TrendWithMatch | null>(null);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!refreshing) return;
-    const t = setInterval(() => setStep((i) => (i + 1) % LOADING.length), 2500);
-    return () => clearInterval(t);
-  }, [refreshing]);
+  const updated = current.length ? new Date(Math.max(...current.map((t) => +new Date(t.created_at)))) : null;
+  const stale = !updated || Date.now() - +updated > 6 * 24 * 3600 * 1000;
+  const groups = CATEGORY_GROUPS.map((g) => ({ ...g, trends: current.filter((t) => t.group_key === g.key).slice(0, 5) })).filter((g) => g.trends.length);
 
+  // Trends refresh automatically every Monday; this is only offered when they're over 6 days old.
   async function refreshNow() {
-    const groups = CATEGORY_GROUPS.map((g) => g.key);
-    const st: Record<string, GroupStatus> = Object.fromEntries(groups.map((g) => [g, "waiting"]));
-    setStatus({ ...st, match: "waiting" });
     const batchId = crypto.randomUUID();
-    const queue: GroupKey[] = [...groups];
+    const queue: GroupKey[] = CATEGORY_GROUPS.map((g) => g.key);
     let failed = 0;
-    // 3 groups at a time, one request per group.
     await Promise.all(
       Array.from({ length: 3 }, async () => {
         while (queue.length) {
           const g = queue.shift()!;
-          setStatus((s) => ({ ...s!, [g]: "working" }));
-          const res = await fetch("/api/trends/refresh", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ group: g, batchId }),
-          }).catch(() => null);
+          setRefreshing(CATEGORY_GROUPS.find((x) => x.key === g)!.label);
+          const res = await fetch("/api/trends/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ group: g, batchId, period: "weekly" }) }).catch(() => null);
           if (!res?.ok) failed++;
-          setStatus((s) => ({ ...s!, [g]: res?.ok ? "done" : "failed" }));
         }
       })
     );
-    setStatus((s) => ({ ...s!, match: "working" }));
-    const m = await fetch("/api/trends/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ step: "match" }) }).catch(() => null);
-    setStatus(null);
+    setRefreshing("your closet");
+    await fetch("/api/trends/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ step: "match" }) }).catch(() => null);
+    setRefreshing(null);
     router.refresh();
-    if (!m?.ok || failed) toast.error(failed ? `${failed} group${failed > 1 ? "s" : ""} failed. The rest were updated.` : "Couldn't match trends to your closet");
-    else toast.success("Trends updated");
+    if (failed) toast.error(`${failed} categor${failed > 1 ? "ies" : "y"} didn't update`);
   }
 
-  const list = view === "now" ? current : past;
-  const filtered = useMemo(() => list.filter((t) => show === "all" || t.status === show), [list, show]);
-  const ownedCount = current.filter((t) => t.status === "owned").length;
-  const updated = current.length ? new Date(Math.max(...current.map((t) => +new Date(t.created_at)))) : null;
-
-  const grouped = CATEGORY_GROUPS.map((g) => ({ ...g, trends: filtered.filter((t) => t.group_key === g.key) })).filter((g) => g.trends.length);
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">What&apos;s In</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {current.length
-              ? `${current.length} trends · ${ownedCount} already in your closet${updated ? ` · updated ${updated.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}` : ""}`
-              : "Daily fashion trends, matched against your wardrobe."}
-          </p>
-        </div>
-        <Button onClick={refreshNow} disabled={refreshing} size="sm">
-          {refreshing ? <Loader2 className="animate-spin" /> : <RefreshCw />} Refresh now
-        </Button>
-      </div>
-
-      {refreshing && (
-        <div className="space-y-2 rounded-2xl border bg-white p-4">
-          <p className="flex items-center gap-2 text-sm font-medium">
-            <Loader2 className="size-4 animate-spin text-primary" /> {LOADING[step]}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {[...CATEGORY_GROUPS.map((g) => [g.key, g.label] as const), ["match", "Matching your closet"] as const].map(([k, label]) => {
-              const s = status?.[k];
-              return (
-                <span
-                  key={k}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
-                    s === "done" && "bg-emerald-100 text-emerald-800",
-                    s === "working" && "bg-trend/30 text-trend-foreground",
-                    s === "failed" && "bg-red-100 text-red-800",
-                    s === "waiting" && "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {s === "working" && <Loader2 className="size-3 animate-spin" />}
-                  {s === "done" && <Check className="size-3" />}
-                  {label}
-                </span>
-              );
-            })}
-          </div>
-          <p className="text-xs text-muted-foreground">This searches Google for each category, about 1–2 minutes in total.</p>
-        </div>
-      )}
-
-      {current.length > 0 || past.length > 0 ? (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="grid grid-cols-2 rounded-xl bg-muted p-1 text-sm font-medium">
-              {(["now", "past"] as const).map((v) => (
-                <button key={v} onClick={() => setView(v)} className={cn("rounded-lg px-3 py-1.5", view === v ? "bg-white shadow-sm" : "text-muted-foreground")}>
-                  {v === "now" ? "This week" : "Past weeks"}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1.5">
-              {(["all", "owned", "missing"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setShow(s)}
-                  className={cn("rounded-full border px-2.5 py-1 text-xs", show === s ? "border-primary bg-primary text-primary-foreground" : "bg-white")}
-                >
-                  {s === "all" ? "All" : s === "owned" ? "Owned ✓" : "Missing"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {grouped.length ? (
-            grouped.map((g) => (
-              <section key={g.key} className="space-y-3">
-                <h2 className="text-xl font-semibold">{g.label}</h2>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {g.trends.map((t) => (
-                    <TrendCard key={t.id} t={t} wardrobe={wardrobe} />
-                  ))}
-                </div>
-              </section>
-            ))
-          ) : (
-            <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-              {view === "past" ? "No older trends yet. They appear here after the next refresh." : "Nothing here with this filter."}
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">This week</p>
+          <h1 className="font-serif text-4xl font-semibold italic leading-none">What&apos;s in</h1>
+          {updated && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Updated {updated.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Kolkata" })} · from celebrities, creators &amp; Pinterest
             </p>
           )}
-        </>
-      ) : (
-        !refreshing && (
-          <div className="rounded-2xl border border-dashed p-10 text-center">
-            <p className="font-medium">No trends yet</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              Closet researches Pinterest, Vogue India, Elle and Myntra/Ajio/Nykaa trend pages with Google Search, then checks what you already own.
-            </p>
-            <Button className="mt-4" onClick={refreshNow}>
-              <RefreshCw /> Find this week&apos;s trends
-            </Button>
-          </div>
-        )
+        </div>
+        {(stale || refreshing) && (
+          <Button size="sm" onClick={refreshNow} disabled={!!refreshing}>
+            {refreshing ? <Loader2 className="animate-spin" /> : <RefreshCw />} {refreshing ? `Checking ${refreshing}…` : "Refresh"}
+          </Button>
+        )}
+      </div>
+
+      {!groups.length && !refreshing && (
+        <div className="rounded-[var(--radius)] border border-dashed border-lace bg-card p-10 text-center">
+          <p className="font-serif text-2xl italic">No trends yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">They arrive every Monday morning. Tap Refresh to get this week&apos;s now.</p>
+        </div>
       )}
+
+      {groups.map((g) => (
+        <section key={g.key} className="space-y-3">
+          <h2 className="font-serif text-2xl italic">{g.label}</h2>
+          {/* 5 in a row on larger screens; a swipeable row on phones */}
+          <div className="-mx-4 grid snap-x auto-cols-[44%] grid-flow-col gap-3 overflow-x-auto px-4 pb-1 sm:auto-cols-[30%] md:mx-0 md:grid-flow-row md:grid-cols-5 md:overflow-visible md:px-0">
+            {g.trends.map((t, i) => (
+              <Tile key={t.id} t={t} i={i} onOpen={() => setOpen(t)} />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <SheetContent side="bottom" className="max-h-[90dvh]">
+          {open && (
+            <>
+              <div className="px-5 pb-3 pt-5 pr-14">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+                  {"🔥".repeat(Math.max(1, Math.min(5, open.heat ?? 3)))} · {labelize(open.category)}
+                </p>
+                <SheetTitle className="italic">{open.title}</SheetTitle>
+              </div>
+              <Detail t={open} wardrobe={wardrobe} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

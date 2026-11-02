@@ -3,28 +3,30 @@
 
 /* Closet theme: off-white, near-black, deep rose accent, warm amber for trends */
 :root {
-  --radius: 1rem;
-  --background: #faf8f5;
-  --foreground: #1a1a1a;
+  /* Coquette Bow: ivory, ribbon red, rose, lace */
+  --radius: 1.375rem;
+  --background: #fffaf3;
+  --foreground: #4a1820;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #4a1820;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #b23a48;
+  --popover-foreground: #4a1820;
+  --primary: #c8102e;
   --primary-foreground: #ffffff;
-  --secondary: #f1ece6;
-  --secondary-foreground: #1a1a1a;
-  --muted: #efebe6;
-  --muted-foreground: #6b6560;
-  --accent: #f4e6e8;
-  --accent-foreground: #8e2c39;
-  --destructive: #c0392b;
-  --border: #e7e1da;
-  --input: #ddd6ce;
-  --ring: #b23a48;
-  --trend: #f5a524;
-  --trend-foreground: #3d2600;
-  --tile: #f0eeeb;
+  --secondary: #fbe3e6;
+  --secondary-foreground: #4a1820;
+  --muted: #f8ede9;
+  --muted-foreground: #8f646b;
+  --accent: #fbe3e6;
+  --accent-foreground: #a50d26;
+  --destructive: #b3261e;
+  --border: #f1dcd6;
+  --input: #ecd0cb;
+  --ring: #c8102e;
+  --trend: #f3d98a;
+  --trend-foreground: #5a3c00;
+  --tile: #fbf1ee;
+  --lace: #f0c9cf;
 }
 
 @theme inline {
@@ -49,6 +51,7 @@
   --color-trend: var(--trend);
   --color-trend-foreground: var(--trend-foreground);
   --color-tile: var(--tile);
+  --color-lace: var(--lace);
   --font-sans: var(--font-inter);
   --font-serif: var(--font-playfair);
   --radius-sm: calc(var(--radius) - 6px);
@@ -63,6 +66,9 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* tiny lace dots */
+    background-image: radial-gradient(var(--border) 1px, transparent 1.2px);
+    background-size: 14px 14px;
   }
   h1, h2, h3 {
     @apply font-serif;
@@ -79,4 +85,22 @@
     linear-gradient(-45deg, transparent 75%, #f1efec 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+/* Coquette details */
+.lace-edge {
+  border: 1px dashed var(--lace);
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+.animate-sway { animation: sway 3.2s ease-in-out infinite; transform-origin: 50% 8%; }
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-1.5deg); }
+}
+.animate-drift { animation: drift 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-sway, .animate-drift { animation: none; }
 }

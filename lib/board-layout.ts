@@ -8,7 +8,7 @@ import type { Item } from "./types";
 export const BOARD_W = 1080;
 export const BOARD_H = 1350;
 export const CONTENT_H = 1200;
-export const BOARD_BG = "#FAF8F5";
+export const BOARD_BG = "#FFFAF3";
 
 export interface Slot {
   x: number;

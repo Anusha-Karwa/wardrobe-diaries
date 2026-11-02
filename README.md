@@ -16,6 +16,10 @@ Upload photos of your clothes; Closet finds every item, cuts each one out, and t
 | Drops | `/` (Home), `/weekly` | Daily outfit of the day + trending item you're missing; weekly headline, top trends, 3 smart buys |
 | Shopping | `/wishlist` | "To buy" cards with marketplace search links, trend badges, price bands |
 
+## Look and feel
+
+**Coquette Bow** theme (chosen from 15 directions): ivory, ribbon red and rose, Playfair Display italic with Nunito, soft rounded cards with dashed "lace" edges and a faint dot pattern. Motion uses `framer-motion` and respects reduced-motion settings: on Home, outfit pieces glide onto a runway one by one, hold, drift away and the next look comes in; the closet glides past in a ribbon; cards ease in on load. The stylist is a hanger-tee button in the corner of every page (not in any menu). Menus and wardrobe filters (groups and options) are alphabetical, and a filter with more than 5 options shows 5 plus "Show more".
+
 ## Stack
 
 Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 + shadcn/ui · Google Gemini (`@google/genai`) · Neon Postgres (`@neondatabase/serverless`, no ORM) · Vercel Blob · Vercel Cron · sharp · `@imgly/background-removal` (browser) · zod · react-markdown.
@@ -57,14 +61,13 @@ flowchart TB
   end
 
   subgraph CRON["Vercel Cron"]
-    D["/api/cron/daily 08:00 IST<br/>3 groups + daily drop"]
+    D["/api/cron/daily 08:00 IST<br/>re-match + daily drop"]
     W["/api/cron/weekly Mon 08:30 IST<br/>all groups + weekly drop"]
   end
 
   UP --> S1
   S6 -->|items| BG -->|PNG| S6
   CHAT --> LOOP
-  D --> R1
   W --> R1
   D --> DROP["lib/drops: outfit of the day,<br/>smart buys, board PNG"]
   W --> DROP
@@ -115,6 +118,10 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://wardrobe-diaries-1i7u.verce
 
 Hobby crons run once a day, accurate to within the hour. Functions use Fluid compute (up to 300 s); the trend page still refreshes one group per request so it can show progress. If a drop is missing (e.g. the very first visit), Home builds it on demand.
 
+## Upload review
+
+The AI fills in every attribute. Each card shows **"Here's what I see"** (one sentence plus the details it worked out, e.g. long sleeves, mandarin neck, cotton) and asks only 4 pre-filled questions: type, colour, size (optional) and when you wear it. Everything else is behind **Edit all details**.
+
 ## How the extraction pipeline cuts items out
 
 | Photo | Cutout | Badge |
@@ -139,6 +146,8 @@ Every card has **Real cutout** and **Use crop** buttons, so an AI product shot c
 - **Privacy:** the photo and renders live in Vercel Blob at unguessable URLs. Blob URLs are public to anyone who has the link, and the app itself is open unless `REQUIRE_PASSCODE=true`, so turn the passcode on if you share the site address. **Delete** removes the photo and every render.
 
 ## Trend engine
+
+Trends refresh **weekly** (Monday cron, or "Refresh" on the page when they're over 6 days old); the daily cron only re-matches them to the wardrobe. Research looks at what celebrities, YouTubers, Instagram creators, Pinterest and street style are wearing, and each trend's one-liner names who's wearing it. Every trend gets a **real photo**: one Google Images search (SerpApi) per trend, copied into Blob, reused when the same trend repeats, with an AI-drawn picture as the fallback (about 35 searches a week). The Trends page is a grid of 5 per category (photo, name, one line); tapping one opens the details.
 
 Each refresh researches 7 category groups (tops, bottoms, dresses & co-ords, ethnic & festive, footwear, jewellery, bags & accessories):
 

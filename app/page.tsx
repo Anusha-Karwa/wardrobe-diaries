@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { ArrowRight, Plus, Sparkles, Wand2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Heart, Plus, Wand2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { BuyCard } from "@/components/buy-card";
-import { OutfitCard } from "@/components/outfit-board";
 import { EnsureDrop } from "@/components/ensure-drop";
+import { Runway, type RunwayLook } from "@/components/home/runway";
+import { ClosetRibbon } from "@/components/home/closet-ribbon";
+import { FadeIn } from "@/components/home/fade-in";
+import { ShopButtons } from "@/components/buy-card";
+import { shopLinks } from "@/lib/shopping";
 import { dailyDropWithOutfit, getDrop, isoDate, mondayOf, todayIST, type WeeklyPayload } from "@/lib/drops";
-import { getProfile, listItems } from "@/lib/queries";
-import { COLOR_SWATCH } from "@/lib/taxonomy";
-import { labelize } from "@/lib/utils";
+import { getItemsByIds, getProfile, listItems, listLookbook } from "@/lib/queries";
+import { getCurrentTrends } from "@/lib/trends";
+import type { Item } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ export default async function HomePage() {
   });
   if (!profile) {
     return (
-      <Card className="border-destructive/40">
+      <Card>
         <p className="text-sm">
           Couldn&apos;t reach the database. Check <code>DATABASE_URL</code> and run <code>npm run db:setup</code>.
         </p>
@@ -30,147 +32,117 @@ export default async function HomePage() {
   }
 
   const today = todayIST();
-  const [items, daily, weekly] = await Promise.all([
+  const [items, daily, weekly, saved, trends] = await Promise.all([
     listItems(),
     dailyDropWithOutfit(isoDate(today)),
     getDrop<WeeklyPayload>("weekly", isoDate(mondayOf(today))),
+    listLookbook().catch(() => []),
+    getCurrentTrends().catch(() => []),
   ]);
   const h = today.getHours();
   const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  const isMonday = today.getDay() === 1;
 
-  // Wardrobe stats + colour palette.
-  const byCat = new Map<string, number>();
-  const byColour = new Map<string, number>();
-  for (const i of items) {
-    byCat.set(i.category, (byCat.get(i.category) ?? 0) + 1);
-    if (i.primary_color) byColour.set(i.primary_color, (byColour.get(i.primary_color) ?? 0) + 1);
+  // Runway: today's drop first, then a few saved looks, each gliding in and out.
+  const savedItems = await getItemsByIds(Array.from(new Set(saved.slice(0, 3).flatMap((o) => o.item_ids))));
+  const byId = new Map(savedItems.map((i) => [i.id, i]));
+  const looks: RunwayLook[] = [];
+  if (daily?.outfit?.items.length) looks.push({ key: `d-${daily.outfit.id}`, label: daily.payload.headline, name: daily.outfit.name ?? "Today's look", tag: daily.outfit.style_tag, items: daily.outfit.items });
+  for (const o of saved.slice(0, 3)) {
+    const its = o.item_ids.map((id) => byId.get(id)).filter((i): i is Item => !!i);
+    if (its.length >= 2) looks.push({ key: `s-${o.id}`, label: "From your lookbook", name: o.name ?? "Saved look", tag: o.style_tag, items: its });
   }
-  const palette = [...byColour.entries()].sort((a, b) => b[1] - a[1]);
+  // The trending piece you're missing that goes with the most of your clothes, from THIS week's trends.
+  const top = trends
+    .filter((t) => t.status === "missing")
+    .sort((a, b) => Math.max(1, b.pairs_with_item_ids.length) * (b.heat ?? 3) - Math.max(1, a.pairs_with_item_ids.length) * (a.heat ?? 3))[0];
+  const missing = top ? { title: top.title, links: shopLinks(top.search_query || top.title), why: top.why_now } : null;
+  const missingImage = top?.image_url ?? null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold">
+    <div className="space-y-7">
+      <FadeIn>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+          {today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="mt-1 font-serif text-4xl font-semibold italic leading-[1.05] md:text-5xl">
           {greeting}
           {profile.name ? `, ${profile.name}` : ""}
         </h1>
-        <p className="mt-1 text-muted-foreground">
-          {today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })} · {profile.city}
-        </p>
-      </div>
+      </FadeIn>
 
-      {/* Weekly drop banner (highlighted on Mondays) */}
-      {weekly && (
-        <Link href="/weekly" className="block">
-          <div className={`rounded-2xl p-4 shadow-sm ${isMonday ? "bg-foreground text-background" : "border bg-card"}`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-wide ${isMonday ? "text-trend" : "text-primary"}`}>
-              {isMonday ? "New · " : ""}Weekly drop
-            </p>
-            <p className="mt-0.5 font-serif text-xl font-semibold leading-tight">{weekly.payload.headline}</p>
-            {weekly.payload.intro && <p className={`mt-1 line-clamp-2 text-sm ${isMonday ? "text-background/80" : "text-muted-foreground"}`}>{weekly.payload.intro}</p>}
-            <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium">
-              Your {weekly.payload.smart_buys.length} smart buys & this week&apos;s trends <ArrowRight className="size-4" />
-            </p>
-          </div>
-        </Link>
+      {!items.length ? (
+        <FadeIn delay={0.1}>
+          <Card className="items-center py-10 text-center">
+            <p className="font-serif text-2xl italic">Let&apos;s fill your closet</p>
+            <p className="max-w-xs text-sm text-muted-foreground">Snap a few clothes or a mirror selfie. Closet does the rest.</p>
+            <Link href="/upload" className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
+              <Plus className="size-4" /> Add clothes
+            </Link>
+          </Card>
+        </FadeIn>
+      ) : looks.length ? (
+        <FadeIn delay={0.05}>
+          <Runway looks={looks} />
+        </FadeIn>
+      ) : (
+        <EnsureDrop period="daily" />
       )}
       {!weekly && items.length > 0 && <EnsureDrop period="weekly" silent />}
 
-      {/* Today's drop */}
-      <section className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Today&apos;s drop</p>
-            <h2 className="text-2xl font-semibold">{daily?.payload.headline ?? "Outfit of the day"}</h2>
-          </div>
-          {daily && (
-            <span className="text-xs text-muted-foreground">for {labelize(daily.payload.occasion)}</span>
-          )}
-        </div>
-
-        {!items.length ? (
-          <Card className="items-center text-center">
-            <p className="font-medium">Your closet is empty</p>
-            <p className="text-sm text-muted-foreground">Upload a few photos and your outfit of the day will appear here every morning.</p>
-            <Button asChild>
-              <Link href="/upload">
-                <Plus /> Add clothes
-              </Link>
-            </Button>
-          </Card>
-        ) : !daily ? (
-          <EnsureDrop period="daily" />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {daily.outfit ? (
-              <OutfitCard
-                outfit={{ ...daily.outfit, id: undefined, board_url: daily.outfit.board_url }}
-                source="occasion"
-              />
-            ) : (
-              <Card>
-                <p className="text-sm text-muted-foreground">No complete outfit today. Add a few more pieces (tops, bottoms, shoes) for daily looks.</p>
-              </Card>
-            )}
-            {daily.payload.trending_missing && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">🔥 Trending &amp; missing from your closet</p>
-                <BuyCard card={daily.payload.trending_missing} wardrobe={items} />
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Wardrobe stats + palette */}
-      {items.length > 0 && (
-        <Link href="/wardrobe" className="block">
-          <Card className="gap-3">
-            <div className="flex items-baseline justify-between">
-              <p className="font-serif text-lg font-semibold">Your closet</p>
-              <span className="text-sm text-muted-foreground">{items.length} pieces</span>
-            </div>
-            <div className="flex h-4 w-full overflow-hidden rounded-full border border-black/5" title="Your colour palette">
-              {palette.map(([c, n]) => (
-                <span
-                  key={c}
-                  title={`${labelize(c)} · ${n}`}
-                  style={{ flex: n, background: COLOR_SWATCH[c as keyof typeof COLOR_SWATCH] ?? "#ccc" }}
-                />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {[...byCat.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .map(([c, n]) => (
-                  <span key={c} className="rounded-full bg-muted px-2.5 py-1 text-xs">
-                    {labelize(c)} <span className="text-muted-foreground">{n}</span>
-                  </span>
-                ))}
-            </div>
-          </Card>
-        </Link>
+      {weekly && (
+        <FadeIn delay={0.15}>
+          <Link href="/weekly" className="group flex items-center justify-between gap-3 rounded-full bg-foreground px-5 py-3 text-background shadow-md">
+            <span className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-trend">Weekly drop</span>
+              <span className="block truncate font-serif text-lg italic">{weekly.payload.headline}</span>
+            </span>
+            <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </FadeIn>
       )}
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-3">
-        <Button asChild variant="default" className="h-auto flex-col gap-1 py-4">
-          <Link href="/upload">
-            <Plus className="size-5" /> Upload
+      {missing && (
+        <FadeIn delay={0.2}>
+          <div className="flex gap-4 rounded-[var(--radius)] border border-dashed border-lace bg-card p-3 shadow-[0_6px_20px_rgba(200,16,46,0.05)]">
+            {missingImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={missingImage} alt="" className="h-32 w-24 shrink-0 rounded-2xl object-cover" />
+            ) : (
+              <span className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-secondary text-3xl">🎀</span>
+            )}
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Trending · not in your closet</p>
+              <p className="font-serif text-lg font-semibold italic leading-tight">{missing.title}</p>
+              {missing.why && <p className="line-clamp-1 text-xs text-muted-foreground">{missing.why}</p>}
+              <ShopButtons links={missing.links} className="sm:grid-cols-4" />
+            </div>
+          </div>
+        </FadeIn>
+      )}
+
+      {items.length > 0 && (
+        <FadeIn delay={0.25} className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <p className="font-serif text-xl italic">Your closet</p>
+            <Link href="/wardrobe" className="text-sm font-bold text-primary">
+              {items.length} pieces →
+            </Link>
+          </div>
+          <ClosetRibbon items={items} />
+        </FadeIn>
+      )}
+
+      <FadeIn delay={0.3} className="grid grid-cols-3 gap-2">
+        {[
+          { href: "/upload", label: "Add clothes", icon: Plus },
+          { href: "/style", label: "Style me", icon: Wand2 },
+          { href: "/wishlist", label: "Wishlist", icon: Heart },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} className="flex flex-col items-center gap-1 rounded-3xl border border-dashed border-lace bg-card py-4 text-sm font-bold transition-colors hover:bg-secondary">
+            <a.icon className="size-5 text-primary" /> {a.label}
           </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto flex-col gap-1 py-4">
-          <Link href="/style">
-            <Wand2 className="size-5" /> Style me
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto flex-col gap-1 py-4">
-          <Link href="/stylist">
-            <Sparkles className="size-5" /> Ask stylist
-          </Link>
-        </Button>
-      </div>
+        ))}
+      </FadeIn>
     </div>
   );
 }
